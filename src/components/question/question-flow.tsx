@@ -172,7 +172,8 @@ export function QuestionFlow({ sessionId }: QuestionFlowProps) {
   type ContentBlock =
     | { type: "questions"; items: typeof questions }
     | { type: "analysis"; item: (typeof analyses)[0] }
-    | { type: "report"; item: NonNullable<typeof report> };
+    | { type: "report"; item: NonNullable<typeof report> }
+    | { type: "finish-banner" };
 
   const contentBlocks: ContentBlock[] = [];
   let questionBatch: typeof questions = [];
@@ -203,6 +204,13 @@ export function QuestionFlow({ sessionId }: QuestionFlowProps) {
       if (analysis) {
         contentBlocks.push({ type: "analysis" as const, item: analysis });
       }
+
+      // Insert finish banner after 50th question's analysis (only when all 50 are answered)
+      const targetBatchIndex = REPORT_TARGET / BATCH_SIZE;
+      if (batchIndex === targetBatchIndex && answeredCount >= REPORT_TARGET) {
+        contentBlocks.push({ type: "finish-banner" as const });
+      }
+
       if (
         !reportInserted &&
         report &&
@@ -249,7 +257,7 @@ export function QuestionFlow({ sessionId }: QuestionFlowProps) {
               disabled={isGeneratingReport}
               className="w-full sm:w-auto px-6 py-2.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 text-sm sm:text-base"
             >
-              回答を終える
+              回答を終えて結果を見る
             </button>
           </div>
         )}
@@ -260,7 +268,7 @@ export function QuestionFlow({ sessionId }: QuestionFlowProps) {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              全体分析レポートを生成中...
+              結果を分析中...
             </div>
           </div>
         )}
@@ -332,6 +340,43 @@ export function QuestionFlow({ sessionId }: QuestionFlowProps) {
                 reportText={block.item.report_text}
                 version={block.item.version}
               />
+            );
+          }
+
+          if (block.type === "finish-banner") {
+            return (
+              <div
+                key={`finish-banner-${blockIndex}`}
+                className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-6 text-center"
+              >
+                <div className="text-2xl font-bold text-blue-800 mb-2">
+                  🎉 50問の回答が完了しました！
+                </div>
+                <p className="text-gray-600 mb-4">
+                  十分なデータが集まりました。結果を確認できます。
+                  <br />
+                  <span className="text-sm text-gray-500">
+                    （続けて回答することもできます）
+                  </span>
+                </p>
+                {isFinishing ? (
+                  <div className="inline-flex items-center gap-2 px-8 py-3 bg-blue-100 text-blue-700 text-lg font-semibold rounded-lg">
+                    <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    結果を分析中...
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleFinish}
+                    disabled={isGeneratingReport}
+                    className="px-8 py-3 bg-blue-600 text-white text-lg font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 shadow-lg hover:shadow-xl"
+                  >
+                    回答を終えて結果を見る →
+                  </button>
+                )}
+              </div>
             );
           }
 
