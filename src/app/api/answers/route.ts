@@ -2,15 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
 
+const FREE_TEXT_OPTION_INDEX = 6;
+
 const saveAnswerSchema = z
   .object({
     sessionId: z.string().uuid(),
     questionId: z.string().uuid(),
-    selectedOption: z.number().int().min(0).max(5),
+    selectedOption: z.number().int().min(0).max(6),
     freeText: z.string().trim().max(1000).optional().nullable(),
   })
   .superRefine((data, ctx) => {
-    if (data.selectedOption === 5 && !data.freeText) {
+    if (data.selectedOption === FREE_TEXT_OPTION_INDEX && !data.freeText) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "自由記述の内容を入力してください",
@@ -25,7 +27,7 @@ export async function POST(request: NextRequest) {
       saveAnswerSchema.parse(body);
 
     const supabase = await createClient();
-    const normalizedFreeText = selectedOption === 5 ? freeText ?? null : null;
+    const normalizedFreeText = selectedOption === FREE_TEXT_OPTION_INDEX ? freeText ?? null : null;
 
     // Upsert answer (allows updating)
     const { data, error } = await supabase

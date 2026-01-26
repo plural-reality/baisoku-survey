@@ -14,7 +14,9 @@ interface QuestionCardProps {
   isLoading?: boolean;
 }
 
-type MainAnswer = "yes" | "unknown" | "no" | null;
+type MainAnswer = "yes" | "unknown" | "no" | "neither" | null;
+
+const FREE_TEXT_OPTION_INDEX = 6;
 
 export function QuestionCard({
   questionIndex,
@@ -31,26 +33,27 @@ export function QuestionCard({
     if (option === null) return null;
     if (option === 0) return "yes";
     if (option === 1) return "unknown";
-    return "no"; // 2, 3, 4, 5
+    if (option === 2) return "no";
+    return "neither"; // 3, 4, 5, 6
   };
 
-  const [expandNo, setExpandNo] = useState(false);
+  const [expandNeither, setExpandNeither] = useState(false);
   const [draftText, setDraftText] = useState(freeText ?? "");
   const mainAnswer = getMainAnswerFromOption(selectedOption);
 
-  // Check if "いいえ" is expanded but no sub-option selected yet (incomplete state)
-  const isNoPending = expandNo && (selectedOption === null || selectedOption < 2);
+  // Check if "どちらでもない" is expanded but no sub-option selected yet (incomplete state)
+  const isNeitherPending = expandNeither && (selectedOption === null || selectedOption < 3);
 
-  // Auto-expand "no" section if a sub-option was previously selected
+  // Auto-expand "neither" section if a sub-option was previously selected
   useEffect(() => {
-    if (selectedOption !== null && selectedOption >= 2) {
-      setExpandNo(true);
+    if (selectedOption !== null && selectedOption >= 3) {
+      setExpandNeither(true);
     }
   }, [selectedOption]);
 
   // Sync draft text with saved free text
   useEffect(() => {
-    if (selectedOption === 5) {
+    if (selectedOption === FREE_TEXT_OPTION_INDEX) {
       setDraftText(freeText ?? "");
     }
   }, [selectedOption, freeText]);
@@ -59,31 +62,35 @@ export function QuestionCard({
     if (isLoading) return;
 
     if (answer === "yes") {
-      setExpandNo(false);
+      setExpandNeither(false);
       setDraftText("");
       onSelect(0, null);
     } else if (answer === "unknown") {
-      setExpandNo(false);
+      setExpandNeither(false);
       setDraftText("");
       onSelect(1, null);
     } else if (answer === "no") {
-      setExpandNo(true);
+      setExpandNeither(false);
+      setDraftText("");
+      onSelect(2, null);
+    } else if (answer === "neither") {
+      setExpandNeither(!expandNeither);
       // Don't submit yet - wait for sub-option selection or free text
     }
   };
 
   const handleSubOptionSelect = (subIndex: number) => {
     if (isLoading) return;
-    // subIndex 0, 1, 2 maps to selectedOption 2, 3, 4
+    // subIndex 0, 1, 2 maps to selectedOption 3, 4, 5
     setDraftText("");
-    onSelect(subIndex + 2, null);
+    onSelect(subIndex + 3, null);
   };
 
   const handleOtherSubmit = () => {
     if (isLoading) return;
     const trimmed = draftText.trim();
     if (!trimmed) return;
-    onSelect(5, trimmed);
+    onSelect(FREE_TEXT_OPTION_INDEX, trimmed);
   };
 
   return (
@@ -179,12 +186,9 @@ export function QuestionCard({
             className={cn(
               "flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-all duration-200",
               "border-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500",
-              // Pending state: expanded but no sub-option selected yet
-              isNoPending
-                ? "bg-rose-50/50 border-rose-300 border-dashed text-rose-600"
-                : mainAnswer === "no"
-                  ? "bg-rose-50 border-rose-500 text-rose-700 shadow-sm"
-                  : "bg-white border-gray-200 text-gray-600 hover:bg-rose-50 hover:border-rose-300 hover:text-rose-600",
+              mainAnswer === "no"
+                ? "bg-rose-50 border-rose-500 text-rose-700 shadow-sm"
+                : "bg-white border-gray-200 text-gray-600 hover:bg-rose-50 hover:border-rose-300 hover:text-rose-600",
               isLoading && "opacity-50 cursor-not-allowed"
             )}
           >
@@ -192,7 +196,7 @@ export function QuestionCard({
               <svg
                 className={cn(
                   "w-4 h-4 sm:w-5 sm:h-5 transition-colors",
-                  isNoPending || mainAnswer === "no" ? "text-rose-500" : "text-gray-400"
+                  mainAnswer === "no" ? "text-rose-500" : "text-gray-400"
                 )}
                 fill="none"
                 viewBox="0 0 24 24"
@@ -206,30 +210,73 @@ export function QuestionCard({
                 />
               </svg>
               <span>いいえ</span>
-              {isNoPending && (
-                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              )}
             </div>
           </button>
         </div>
 
-        {/* Sub-options and free text when "No" is selected */}
+        {/* どちらでもない (Neither) button */}
+        <button
+          onClick={() => handleMainSelect("neither")}
+          disabled={isLoading}
+          className={cn(
+            "w-full py-2.5 px-4 rounded-xl font-medium text-sm transition-all duration-200",
+            "border-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500",
+            isNeitherPending
+              ? "bg-slate-50/50 border-slate-300 border-dashed text-slate-600"
+              : mainAnswer === "neither"
+                ? "bg-slate-100 border-slate-400 text-slate-700 shadow-sm"
+                : "bg-white border-gray-200 text-gray-500 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-600",
+            isLoading && "opacity-50 cursor-not-allowed"
+          )}
+        >
+          <div className="flex items-center justify-center gap-1.5 sm:gap-2">
+            <svg
+              className={cn(
+                "w-4 h-4 sm:w-5 sm:h-5 transition-colors",
+                isNeitherPending || mainAnswer === "neither" ? "text-slate-500" : "text-gray-400"
+              )}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <span>どちらでもない</span>
+            <svg
+              className={cn(
+                "w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-200",
+                expandNeither ? "rotate-180" : ""
+              )}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </button>
+
+        {/* Sub-options and free text when "どちらでもない" is expanded */}
         <div
           className={cn(
             "overflow-hidden transition-all duration-300 ease-in-out",
-            expandNo ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"
+            expandNeither ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"
           )}
         >
           <div
             className={cn(
               "pt-3 space-y-2 rounded-lg transition-all duration-200",
-              isNoPending && "bg-blue-50/30 p-3 -mx-1 border border-blue-200"
+              isNeitherPending && "bg-blue-50/30 p-3 -mx-1 border border-blue-200"
             )}
           >
             {/* Pending state message */}
-            {isNoPending && (
+            {isNeitherPending && (
               <div className="flex items-center gap-2 text-blue-600 text-sm font-medium mb-3 pb-2 border-b border-blue-200">
                 <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -238,18 +285,18 @@ export function QuestionCard({
               </div>
             )}
             <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-3">
-              理由を選択
+              その他の立場を選択
             </p>
-            {options.slice(2).map((option, index) => (
+            {options.slice(3, 6).map((option, index) => (
               <button
                 key={index}
                 onClick={() => handleSubOptionSelect(index)}
                 disabled={isLoading}
                 className={cn(
                   "w-full text-left px-4 py-3 rounded-lg border-2 transition-all duration-200",
-                  "focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2",
-                  selectedOption === index + 2
-                    ? "border-rose-400 bg-rose-50 text-rose-800"
+                  "focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2",
+                  selectedOption === index + 3
+                    ? "border-slate-400 bg-slate-50 text-slate-800"
                     : "border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300",
                   isLoading && "opacity-50 cursor-not-allowed"
                 )}
@@ -258,12 +305,12 @@ export function QuestionCard({
                   <span
                     className={cn(
                       "flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
-                      selectedOption === index + 2
-                        ? "border-rose-500 bg-rose-500"
+                      selectedOption === index + 3
+                        ? "border-slate-500 bg-slate-500"
                         : "border-gray-300 bg-white"
                     )}
                   >
-                    {selectedOption === index + 2 && (
+                    {selectedOption === index + 3 && (
                       <svg
                         className="w-3.5 h-3.5 text-white"
                         fill="none"
@@ -284,7 +331,7 @@ export function QuestionCard({
               </button>
             ))}
 
-            {/* Free text input - directly visible when "いいえ" is expanded */}
+            {/* Free text input - directly visible when "どちらでもない" is expanded */}
             <div className="mt-4 pt-4 border-t border-gray-200">
               <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-3">
                 または自由記述で回答
@@ -292,7 +339,7 @@ export function QuestionCard({
               <div
                 className={cn(
                   "rounded-lg border-2 p-4 transition-all duration-200",
-                  selectedOption === 5
+                  selectedOption === FREE_TEXT_OPTION_INDEX
                     ? "border-violet-400 bg-violet-50/50"
                     : "border-gray-200 bg-gray-50/50"
                 )}
@@ -325,7 +372,7 @@ export function QuestionCard({
                         "opacity-50 cursor-not-allowed"
                     )}
                   >
-                    {selectedOption === 5 ? "更新する" : "送信する"}
+                    {selectedOption === FREE_TEXT_OPTION_INDEX ? "更新する" : "送信する"}
                   </button>
                 </div>
               </div>

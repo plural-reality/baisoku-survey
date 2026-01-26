@@ -1,6 +1,6 @@
 import { getPhaseDescription } from "@/lib/utils/phase";
 
-const OTHER_OPTION_INDEX = 5;
+const OTHER_OPTION_INDEX = 6;
 
 function formatAnswerText(
   options: string[],
@@ -32,7 +32,7 @@ export interface QuestionGenerationContext {
   }>;
   startIndex: number;
   endIndex: number;
-  phase: "exploration" | "deep-dive";
+  phase: "exploration" | "deep-dive" | "reframing";
 }
 
 export function buildQuestionGenerationPrompt(
@@ -90,20 +90,24 @@ Q${ctx.startIndex} から Q${ctx.endIndex} までの ${ctx.endIndex - ctx.startI
 ## 選択肢設計（最重要）
 
 ### 基本構造
-- optionsは必ず5つ
+- optionsは必ず6つ
 - options[0]は必ず「はい」
 - options[1]は必ず「わからない」
-- options[2]〜[4]は「はい」でも「わからない」でもない場合の選択肢
+- options[2]は必ず「いいえ」（単純な否定）
+- options[3]〜[5]は「はい」「わからない」「いいえ」のどちらでもない場合の選択肢
 
-### options[2]〜[4]の設計思想
-「はい」ではない場合、この人はどう答えるか？を予測して作成する：
+### options[3]〜[5]の設計思想
+「はい」「わからない」「いいえ」のどれでもない場合、このユーザーはどう答えるか？を**過去の回答傾向を踏まえて**予測し、ありえそうな立場トップ3を作成する：
 
-- options[2]【本命】: 「いいえ・その他」の場合、最もありそうな立場・理由
-  - 例: ステートメントに賛成しない場合の、最も自然な考え方
-- options[3]【次点】: 二番目にありそうな立場・理由
-  - 例: 完全な反対ではないが、条件付き・部分的な異論
-- options[4]【大穴】: 可能性は低いが考えられる立場・理由
-  - 例: 全く別の角度からの見方、想定外だが論理的にはありえる立場
+- options[3]: 最もありそうな立場・理由
+- options[4]: 二番目にありそうな立場・理由
+- options[5]: 三番目にありそうな立場・理由
+
+例：
+- 条件付き・部分的な賛成
+- 状況や文脈によるという立場
+- 別の角度・視点からの見方
+- 程度や範囲についての留保
 
 各選択肢は15-40文字程度で、具体的で互いに重ならない立場にする。
 
@@ -115,7 +119,7 @@ Q${ctx.startIndex} から Q${ctx.endIndex} までの ${ctx.endIndex - ctx.startI
     {
       "statement": "ステートメント（30-50文字、断定文）",
       "detail": "補足説明（80-120文字、断定文）",
-      "options": ["はい", "わからない", "本命の立場", "次点の立場", "大穴の立場"]
+      "options": ["はい", "わからない", "いいえ", "本命の立場", "次点の立場", "大穴の立場"]
     }
   ]
 }`;
