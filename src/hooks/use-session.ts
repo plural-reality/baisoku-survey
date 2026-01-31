@@ -8,7 +8,13 @@ interface QuestionWithAnswer extends Question {
   freeText: string | null;
 }
 
-export function useSession(sessionId: string) {
+interface UseSessionOptions {
+  autoGenerate?: boolean;
+  refreshToken?: string | number | null;
+}
+
+export function useSession(sessionId: string, options: UseSessionOptions = {}) {
+  const { autoGenerate = true, refreshToken = null } = options;
   const [session, setSession] = useState<Session | null>(null);
   const [questions, setQuestions] = useState<QuestionWithAnswer[]>([]);
   const [analyses, setAnalyses] = useState<Analysis[]>([]);
@@ -40,19 +46,21 @@ export function useSession(sessionId: string) {
         setAnalyses(data.analyses);
         setReport(data.report);
 
-        // If no questions yet, generate first batch
-        if (questionList.length === 0) {
-          await generateNextBatchInternal(1, 5);
-        }
+        if (autoGenerate) {
+          // If no questions yet, generate first batch
+          if (questionList.length === 0) {
+            await generateNextBatchInternal(1, 5);
+          }
 
-        const allAnswered =
-          questionList.length > 0 &&
-          questionList.every((q) => q.selectedOption !== null);
-        if (allAnswered) {
-          const lastIndex = Math.max(
-            ...questionList.map((q) => q.question_index)
-          );
-          await generateNextBatchInternal(lastIndex + 1, lastIndex + 5);
+          const allAnswered =
+            questionList.length > 0 &&
+            questionList.every((q) => q.selectedOption !== null);
+          if (allAnswered) {
+            const lastIndex = Math.max(
+              ...questionList.map((q) => q.question_index)
+            );
+            await generateNextBatchInternal(lastIndex + 1, lastIndex + 5);
+          }
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unknown error");
@@ -63,7 +71,7 @@ export function useSession(sessionId: string) {
 
     fetchSession();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId]);
+  }, [sessionId, autoGenerate, refreshToken]);
 
   const generateNextBatchInternal = async (
     startIndex: number,

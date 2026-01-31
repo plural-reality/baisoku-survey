@@ -22,6 +22,9 @@ interface VotematchSessionProps {
 
 export function VotematchSession({ sessionId }: VotematchSessionProps) {
   const [showWelcome, setShowWelcome] = useState(true);
+  const [warmupStatus, setWarmupStatus] = useState<
+    "idle" | "running" | "done" | "error"
+  >("idle");
 
   // localStorageでこのセッションがウェルカムを見たか確認
   useEffect(() => {
@@ -31,18 +34,18 @@ export function VotematchSession({ sessionId }: VotematchSessionProps) {
     }
   }, [sessionId]);
 
-  // ウェルカム表示中に質問生成を先行開始
+  // セッション表示時点で質問生成を先行開始
   useEffect(() => {
-    if (!showWelcome) {
-      return;
-    }
-
     let cancelled = false;
 
     async function warmupQuestions() {
+      setWarmupStatus("running");
       try {
         const response = await fetch(`/api/sessions/${sessionId}`);
         if (!response.ok) {
+          if (!cancelled) {
+            setWarmupStatus("error");
+          }
           return;
         }
 
@@ -56,16 +59,25 @@ export function VotematchSession({ sessionId }: VotematchSessionProps) {
           : [];
 
         if (existingQuestions.length > 0) {
+          if (!cancelled) {
+            setWarmupStatus("done");
+          }
           return;
         }
 
-        await fetch("/api/questions/generate", {
+        const generateResponse = await fetch("/api/questions/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sessionId, startIndex: 1, endIndex: 5 }),
         });
+
+        if (!cancelled) {
+          setWarmupStatus(generateResponse.ok ? "done" : "error");
+        }
       } catch {
-        // silent: welcome表示中の裏処理なので失敗してもUIは継続
+        if (!cancelled) {
+          setWarmupStatus("error");
+        }
       }
     }
 
@@ -74,7 +86,7 @@ export function VotematchSession({ sessionId }: VotematchSessionProps) {
     return () => {
       cancelled = true;
     };
-  }, [sessionId, showWelcome]);
+  }, [sessionId]);
 
   const handleStart = () => {
     const key = `votematch_started_${sessionId}`;
@@ -83,7 +95,13 @@ export function VotematchSession({ sessionId }: VotematchSessionProps) {
   };
 
   if (!showWelcome) {
-    return <QuestionFlow sessionId={sessionId} />;
+    return (
+      <QuestionFlow
+        sessionId={sessionId}
+        autoGenerate={false}
+        warmupStatus={warmupStatus}
+      />
+    );
   }
 
   return (

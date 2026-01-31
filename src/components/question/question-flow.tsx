@@ -12,12 +12,18 @@ import { useSession } from "@/hooks/use-session";
 
 interface QuestionFlowProps {
   sessionId: string;
+  autoGenerate?: boolean;
+  warmupStatus?: "idle" | "running" | "done" | "error";
 }
 
 const BATCH_SIZE = 5;
 const REPORT_TARGET = 50;
 
-export function QuestionFlow({ sessionId }: QuestionFlowProps) {
+export function QuestionFlow({
+  sessionId,
+  autoGenerate = true,
+  warmupStatus = "idle",
+}: QuestionFlowProps) {
   const router = useRouter();
   const {
     session,
@@ -32,7 +38,10 @@ export function QuestionFlow({ sessionId }: QuestionFlowProps) {
     generateNextBatch,
     generateAnalysis,
     generateReport,
-  } = useSession(sessionId);
+  } = useSession(sessionId, {
+    autoGenerate: autoGenerate || warmupStatus === "error",
+    refreshToken: warmupStatus,
+  });
 
   const [pendingAnswer, setPendingAnswer] = useState<{
     questionId: string;
@@ -234,7 +243,10 @@ export function QuestionFlow({ sessionId }: QuestionFlowProps) {
     contentBlocks.push({ type: "report" as const, item: report });
   }
 
-  if (isLoading) {
+  const showLoading =
+    isLoading || (warmupStatus === "running" && questions.length === 0);
+
+  if (showLoading) {
     return (
       <div className="space-y-4">
         <Progress current={0} total={progressTotal} />
