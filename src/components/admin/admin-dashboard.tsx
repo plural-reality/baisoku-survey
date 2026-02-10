@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { SurveyReportSection } from "./survey-report-section";
 
 interface PresetInfo {
   id: string;
@@ -33,11 +34,22 @@ interface ReportInfo {
   report_text: string;
 }
 
+interface SurveyReportInfo {
+  id: string;
+  preset_id: string;
+  version: number;
+  report_text: string;
+  custom_instructions: string | null;
+  status: "generating" | "completed" | "failed";
+  created_at: string;
+}
+
 interface AdminData {
   preset: PresetInfo;
   sessions: SessionInfo[];
   responses: ResponseInfo[];
   reports: ReportInfo[];
+  surveyReports: SurveyReportInfo[];
 }
 
 export function AdminDashboard({ token }: { token: string }) {
@@ -89,11 +101,16 @@ export function AdminDashboard({ token }: { token: string }) {
     );
   }
 
-  const { preset, sessions, responses, reports } = data;
+  const { preset, sessions, responses, reports, surveyReports: initialSurveyReports } = data;
+  const [surveyReports, setSurveyReports] = useState<SurveyReportInfo[]>(initialSurveyReports || []);
   const surveyUrl = `${window.location.origin}/preset/${preset.slug}`;
 
   const completedSessions = sessions.filter((s) => s.status === "completed");
   const activeSessions = sessions.filter((s) => s.status === "active");
+
+  const handleSurveyReportGenerated = (report: SurveyReportInfo) => {
+    setSurveyReports((prev) => [report, ...prev]);
+  };
 
   return (
     <div className="space-y-8">
@@ -127,6 +144,15 @@ export function AdminDashboard({ token }: { token: string }) {
         <StatCard label="完了" value={completedSessions.length} />
         <StatCard label="回答中" value={activeSessions.length} />
       </div>
+
+      {/* Survey aggregate report */}
+      <SurveyReportSection
+        token={token}
+        surveyReports={surveyReports}
+        sessions={sessions}
+        responses={responses}
+        onReportGenerated={handleSurveyReportGenerated}
+      />
 
       {/* Sessions list */}
       <div>
