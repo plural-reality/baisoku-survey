@@ -9,19 +9,20 @@ export async function GET(
     const { token } = await params;
     const supabase = await createClient();
 
-    // Look up preset by admin_token
-    const { data: preset, error: presetError } = await supabase
-      .from("presets")
-      .select("id, slug, title, purpose, created_at")
-      .eq("admin_token", token)
-      .single();
+    // Look up preset by admin_token via SECURITY DEFINER function
+    const { data: presetRows, error: presetError } = await supabase.rpc(
+      "get_preset_by_admin_token",
+      { token }
+    );
 
-    if (presetError || !preset) {
+    if (presetError || !presetRows || presetRows.length === 0) {
       return NextResponse.json(
         { error: "管理画面が見つかりません" },
         { status: 404 }
       );
     }
+
+    const preset = presetRows[0];
 
     // Fetch all sessions for this preset
     const { data: sessions, error: sessionsError } = await supabase

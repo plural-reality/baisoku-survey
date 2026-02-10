@@ -23,21 +23,17 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient();
 
-    const { data, error } = await supabase
-      .from("presets")
-      .insert({
-        slug: generateSlug(),
-        title: validated.title,
-        purpose: validated.purpose,
-        background_text: validated.backgroundText || null,
-        report_instructions: validated.reportInstructions || null,
-        og_title: validated.ogTitle || null,
-        og_description: validated.ogDescription || null,
-      })
-      .select("slug, admin_token")
-      .single();
+    const { data, error } = await supabase.rpc("create_preset_with_token", {
+      p_slug: generateSlug(),
+      p_title: validated.title,
+      p_purpose: validated.purpose,
+      p_background_text: validated.backgroundText || null,
+      p_report_instructions: validated.reportInstructions || null,
+      p_og_title: validated.ogTitle || null,
+      p_og_description: validated.ogDescription || null,
+    });
 
-    if (error) {
+    if (error || !data || data.length === 0) {
       console.error("Preset creation error:", error);
       return NextResponse.json(
         { error: "プリセットの作成に失敗しました" },
@@ -45,10 +41,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const row = data[0];
     return NextResponse.json({
       preset: {
-        slug: data.slug,
-        adminToken: data.admin_token,
+        slug: row.slug,
+        adminToken: row.admin_token,
       },
     });
   } catch (error) {

@@ -1,7 +1,6 @@
 export interface Preset {
   id: string;
   slug: string;
-  admin_token: string;
   title: string;
   purpose: string;
   background_text: string | null;
