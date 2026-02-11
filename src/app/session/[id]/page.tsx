@@ -1,17 +1,23 @@
 import { QuestionFlow } from "@/components/question/question-flow";
 import { VotematchSession } from "@/components/preset/votematch-session";
+import { VoiceQuestionFlow } from "@/components/voice/voice-question-flow";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
 interface SessionPageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 const VOTEMATCH_TITLE = "2026年の衆議院選挙 ボートマッチ";
 
-export default async function SessionPage({ params }: SessionPageProps) {
+export default async function SessionPage({
+  params,
+  searchParams,
+}: SessionPageProps) {
   const { id } = await params;
+  const resolvedSearchParams = await searchParams;
   const supabase = await createClient();
 
   const { data: session } = await supabase
@@ -24,7 +30,17 @@ export default async function SessionPage({ params }: SessionPageProps) {
     redirect("/");
   }
 
+  const isVoiceMode = resolvedSearchParams.mode === "voice";
   const isVotematch = session.title === VOTEMATCH_TITLE;
+
+  // 音声モードの場合は専用のフルスクリーンレイアウト
+  if (isVoiceMode) {
+    return (
+      <main className="min-h-screen bg-white">
+        <VoiceQuestionFlow sessionId={id} />
+      </main>
+    );
+  }
 
   // ボートマッチの場合は専用のレイアウト
   if (isVotematch) {
