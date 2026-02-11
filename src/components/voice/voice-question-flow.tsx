@@ -6,6 +6,8 @@ import { useSession } from "@/hooks/use-session";
 import { useDeepgramSTT } from "@/hooks/use-deepgram-stt";
 import { cn } from "@/lib/utils/cn";
 import { VoiceRecordingIndicator } from "./voice-recording-indicator";
+import { AnalysisBlock } from "@/components/analysis/analysis-block";
+import { AnalysisSkeleton } from "@/components/analysis/analysis-skeleton";
 
 interface VoiceQuestionFlowProps {
   sessionId: string;
@@ -45,6 +47,8 @@ export function VoiceQuestionFlow({ sessionId }: VoiceQuestionFlowProps) {
   const [processingBatch, setProcessingBatch] = useState(false);
   const [isFinishing, setIsFinishing] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+  // Track which analysis the user has dismissed (batch index)
+  const [dismissedAnalysisBatch, setDismissedAnalysisBatch] = useState(0);
 
   // Track answered count for batch processing
   const answeredCount = questions.filter(
@@ -62,6 +66,23 @@ export function VoiceQuestionFlow({ sessionId }: VoiceQuestionFlowProps) {
   // Previous answered question count for reference
   const prevAnsweredRef = useRef(answeredCount);
 
+  // Determine if we should show an analysis interstitial
+  const currentBatchIndex =
+    answeredCount > 0 && answeredCount % BATCH_SIZE === 0
+      ? answeredCount / BATCH_SIZE
+      : 0;
+  const pendingAnalysis =
+    currentBatchIndex > 0 && currentBatchIndex > dismissedAnalysisBatch
+      ? analyses.find((a) => a.batch_index === currentBatchIndex)
+      : null;
+  const showAnalysisInterstitial =
+    pendingAnalysis !== null && pendingAnalysis !== undefined;
+  const showAnalysisLoading =
+    currentBatchIndex > 0 &&
+    currentBatchIndex > dismissedAnalysisBatch &&
+    !pendingAnalysis &&
+    isGeneratingAnalysis;
+
   // Combine committed + partial for display
   const fullTranscript = committedTranscript
     ? partialTranscript
@@ -75,16 +96,32 @@ export function VoiceQuestionFlow({ sessionId }: VoiceQuestionFlowProps) {
     await startSTT();
   }, [startSTT]);
 
+  // Dismiss analysis and continue to next question
+  const handleDismissAnalysis = useCallback(() => {
+    setDismissedAnalysisBatch(currentBatchIndex);
+  }, [currentBatchIndex]);
+
   // Save current answer and advance to next question
   const handleNext = useCallback(async () => {
+    // If analysis interstitial is showing, dismiss it
+    if (showAnalysisInterstitial || showAnalysisLoading) {
+      handleDismissAnalysis();
+      return;
+    }
+
     if (!currentQuestion || isTransitioning) return;
 
     setIsTransitioning(true);
-    const transcript = committedTranscript.trim();
 
-    if (transcript) {
+    // Flush: combine committed + any remaining partial transcript
+    const allText = [committedTranscript, partialTranscript]
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .join("");
+
+    if (allText) {
       // Save as free text answer
-      await submitAnswer(currentQuestion.id, FREE_TEXT_OPTION_INDEX, transcript);
+      await submitAnswer(currentQuestion.id, FREE_TEXT_OPTION_INDEX, allText);
     } else {
       // Skip — submit as "unknown" (option 1) if nothing was said
       await submitAnswer(currentQuestion.id, 1, null);
@@ -96,7 +133,17 @@ export function VoiceQuestionFlow({ sessionId }: VoiceQuestionFlowProps) {
     setTimeout(() => {
       setIsTransitioning(false);
     }, 300);
-  }, [currentQuestion, committedTranscript, submitAnswer, clearTranscript, isTransitioning]);
+  }, [
+    currentQuestion,
+    committedTranscript,
+    partialTranscript,
+    submitAnswer,
+    clearTranscript,
+    isTransitioning,
+    showAnalysisInterstitial,
+    showAnalysisLoading,
+    handleDismissAnalysis,
+  ]);
 
   // Spacebar to advance
   useEffect(() => {
@@ -317,6 +364,79 @@ export function VoiceQuestionFlow({ sessionId }: VoiceQuestionFlowProps) {
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin mx-auto mb-4" />
           <p className="text-gray-500 text-sm">次の質問を準備中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Analysis interstitial — shown after every 5 questions
+  if (showAnalysisInterstitial || showAnalysisLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        {/* Top bar — progress */}
+        <div className="flex-shrink-0 px-6 pt-6 pb-4">
+          <div className="max-w-lg mx-auto">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs text-gray-400">
+                {answeredCount} / {Math.max(REPORT_TARGET, questions.length)}
+              </span>
+              {answeredCount >= BATCH_SIZE && (
+                <button
+                  onClick={handleFinish}
+                  className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  回答を終了
+                </button>
+              )}
+            </div>
+            <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gray-900 rounded-full transition-all duration-500 ease-out"
+                style={{
+                  width: `${(answeredCount / Math.max(REPORT_TARGET, questions.length)) * 100}%`,
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Analysis content — centered */}
+        <div className="flex-1 flex flex-col items-center justify-center px-6">
+          <div className="max-w-lg w-full">
+            {showAnalysisLoading ? (
+              <AnalysisSkeleton />
+            ) : (
+              pendingAnalysis && (
+                <AnalysisBlock
+                  batchIndex={pendingAnalysis.batch_index}
+                  text={pendingAnalysis.analysis_text}
+                />
+              )
+            )}
+          </div>
+        </div>
+
+        {/* Bottom bar — continue button */}
+        <div className="flex-shrink-0 px-6 pb-8 pt-4">
+          <div className="max-w-lg mx-auto">
+            <button
+              onClick={handleDismissAnalysis}
+              disabled={showAnalysisLoading}
+              className={cn(
+                "w-full py-4 rounded-xl font-medium text-sm transition-all duration-200",
+                showAnalysisLoading
+                  ? "bg-gray-100 text-gray-300"
+                  : "bg-gray-900 text-white hover:bg-gray-800"
+              )}
+            >
+              {showAnalysisLoading ? "分析中..." : "次の質問へ進む"}
+            </button>
+            {!showAnalysisLoading && (
+              <p className="text-center text-xs text-gray-300 mt-3">
+                スペースキーでも次へ進めます
+              </p>
+            )}
+          </div>
         </div>
       </div>
     );
