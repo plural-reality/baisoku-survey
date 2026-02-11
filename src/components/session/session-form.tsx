@@ -118,7 +118,7 @@ export function SessionForm() {
       </div>
 
       {showAdvanced && (
-        <div className="space-y-6 pl-2 border-l-2 border-gray-200">
+        <div className="space-y-6">
           <div>
             <label
               htmlFor="reportTarget"
