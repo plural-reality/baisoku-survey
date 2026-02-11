@@ -37,7 +37,7 @@ export function PresetCreator() {
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
         throw new Error(
-          data.error || "キークエスチョンの生成に失敗しました"
+          data.error || "項目の生成に失敗しました"
         );
       }
 
@@ -230,7 +230,7 @@ export function PresetCreator() {
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className="block text-sm font-medium text-gray-700">
-            キークエスチョン（任意）
+            具体的に聞きたい項目（任意）
           </label>
           <button
             type="button"
@@ -242,7 +242,7 @@ export function PresetCreator() {
           </button>
         </div>
         <p className="text-xs text-gray-500 mb-3">
-          目的に基づいた大きな粒度の問いです。これらを軸に具体的な質問が生成されます。「AIで生成する」ボタンで自動生成し、手動で編集もできます。
+          アンケートで掘り下げたいポイントを設定できます。ここで設定した項目を軸に、AIが具体的な質問を生成します。「AIで生成する」ボタンで目的・背景情報から自動生成することも、手動で追加・編集することもできます。
         </p>
 
         {keyQuestions.length > 0 && (
@@ -301,34 +301,11 @@ export function PresetCreator() {
                 <textarea
                   value={question}
                   onChange={(e) => updateKeyQuestion(index, e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
-                  rows={2}
-                  placeholder="キークエスチョンを入力..."
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  rows={3}
+                  style={{ fieldSizing: "content" } as React.CSSProperties}
+                  placeholder="聞きたい項目を入力..."
                 />
-                <div className="flex flex-col gap-0.5 mt-1 flex-shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => moveKeyQuestion(index, index - 1)}
-                    disabled={index === 0}
-                    className="text-gray-300 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                    title="上に移動"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => moveKeyQuestion(index, index + 1)}
-                    disabled={index === keyQuestions.length - 1}
-                    className="text-gray-300 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                    title="下に移動"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                </div>
                 <button
                   type="button"
                   onClick={() => removeKeyQuestion(index)}
@@ -349,7 +326,7 @@ export function PresetCreator() {
           onClick={addKeyQuestion}
           className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
         >
-          + 質問を追加
+          + 項目を追加
         </button>
       </div>
 
