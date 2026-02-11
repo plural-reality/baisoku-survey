@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { SurveyReportSection } from "./survey-report-section";
 import { QRCodeSVG } from "qrcode.react";
+
+const POLLING_INTERVAL_MS = 10_000;
 
 interface PresetInfo {
   id: string;
@@ -58,10 +60,15 @@ export function AdminDashboard({ token }: { token: string }) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [surveyReports, setSurveyReports] = useState<SurveyReportInfo[]>([]);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const fetchingRef = useRef(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
+  const fetchData = useCallback(
+    async (isInitial: boolean) => {
+      if (fetchingRef.current) return;
+      fetchingRef.current = true;
       try {
         const response = await fetch(`/api/admin/${token}`);
         if (!response.ok) {
@@ -72,18 +79,35 @@ export function AdminDashboard({ token }: { token: string }) {
         }
         const json = await response.json();
         setData(json);
+        setLastUpdated(new Date());
+        setError(null);
         setSurveyReports(json.surveyReports || []);
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "予期せぬエラーが発生しました"
-        );
+        if (isInitial) {
+          setError(
+            err instanceof Error ? err.message : "予期せぬエラーが発生しました"
+          );
+        }
+        // On polling errors, silently keep the existing data
       } finally {
-        setLoading(false);
+        fetchingRef.current = false;
+        if (isInitial) setLoading(false);
       }
-    };
+    },
+    [token]
+  );
 
-    fetchData();
-  }, [token]);
+  useEffect(() => {
+    fetchData(true);
+
+    intervalRef.current = setInterval(() => {
+      fetchData(false);
+    }, POLLING_INTERVAL_MS);
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [fetchData]);
 
   const handleSurveyReportGenerated = (report: SurveyReportInfo) => {
     setSurveyReports((prev) => [report, ...prev]);
@@ -118,7 +142,15 @@ export function AdminDashboard({ token }: { token: string }) {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <p className="text-sm text-gray-500 mb-1">管理画面</p>
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-gray-500 mb-1">管理画面</p>
+          {lastUpdated && (
+            <p className="text-xs text-gray-400">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-400 mr-1 animate-pulse" />
+              {lastUpdated.toLocaleTimeString("ja-JP")} 更新
+            </p>
+          )}
+        </div>
         <h1 className="text-2xl font-bold text-gray-900">{preset.title}</h1>
         <p className="text-sm text-gray-600 mt-2 line-clamp-2">
           {preset.purpose}
