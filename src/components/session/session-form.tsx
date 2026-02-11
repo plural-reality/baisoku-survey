@@ -9,6 +9,7 @@ export function SessionForm() {
   const [purpose, setPurpose] = useState("");
   const [backgroundText, setBackgroundText] = useState("");
   const [reportTarget, setReportTarget] = useState(25);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -99,28 +100,50 @@ export function SessionForm() {
       <PdfUpload onExtract={handlePdfExtract} />
 
       <div>
-        <label
-          htmlFor="reportTarget"
-          className="block text-sm font-medium text-gray-700 mb-2"
+        <button
+          type="button"
+          onClick={() => setShowAdvanced(!showAdvanced)}
+          className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
         >
-          回答数
-        </label>
-        <p className="text-xs text-gray-500 mb-2">
-          何問回答したらレポートを生成するかを設定します。
-        </p>
-        <select
-          id="reportTarget"
-          value={reportTarget}
-          onChange={(e) => setReportTarget(Number(e.target.value))}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-        >
-          {Array.from({ length: 19 }, (_, i) => (i + 1) * 5).map((n) => (
-            <option key={n} value={n}>
-              {n}問{n === 25 ? "（デフォルト）" : ""}
-            </option>
-          ))}
-        </select>
+          <svg
+            className={`w-4 h-4 transition-transform ${showAdvanced ? "rotate-90" : ""}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+          詳細設定
+        </button>
       </div>
+
+      {showAdvanced && (
+        <div className="space-y-6">
+          <div>
+            <label
+              htmlFor="reportTarget"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              回答数
+            </label>
+            <p className="text-xs text-gray-500 mb-2">
+              何問回答したらレポートを生成するかを設定します。
+            </p>
+            <select
+              id="reportTarget"
+              value={reportTarget}
+              onChange={(e) => setReportTarget(Number(e.target.value))}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+            >
+              {Array.from({ length: 19 }, (_, i) => (i + 1) * 5).map((n) => (
+                <option key={n} value={n}>
+                  {n}問{n === 25 ? "（デフォルト）" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
