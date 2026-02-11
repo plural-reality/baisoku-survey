@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/hooks/use-session";
-import { useElevenLabsSTT } from "@/hooks/use-elevenlabs-stt";
+import { useDeepgramSTT } from "@/hooks/use-deepgram-stt";
 import { cn } from "@/lib/utils/cn";
 import { VoiceRecordingIndicator } from "./voice-recording-indicator";
 
@@ -39,7 +39,7 @@ export function VoiceQuestionFlow({ sessionId }: VoiceQuestionFlowProps) {
     start: startSTT,
     stop: stopSTT,
     clearTranscript,
-  } = useElevenLabsSTT({ languageCode: "ja" });
+  } = useDeepgramSTT({ language: "ja" });
 
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [processingBatch, setProcessingBatch] = useState(false);
