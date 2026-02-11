@@ -14,6 +14,7 @@ export function PresetCreator() {
   const [backgroundText, setBackgroundText] = useState("");
   const [reportInstructions, setReportInstructions] = useState("");
   const [reportTarget, setReportTarget] = useState(25);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<CreatedPreset | null>(null);
@@ -167,48 +168,70 @@ export function PresetCreator() {
       <PdfUpload onExtract={handlePdfExtract} />
 
       <div>
-        <label
-          htmlFor="reportInstructions"
-          className="block text-sm font-medium text-gray-700 mb-2"
+        <button
+          type="button"
+          onClick={() => setShowAdvanced(!showAdvanced)}
+          className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
         >
-          レポート生成の指示（任意）
-        </label>
-        <p className="text-xs text-gray-500 mb-2">
-          最終レポートの内容やフォーマットに関する指示があれば入力してください。
-        </p>
-        <textarea
-          id="reportInstructions"
-          value={reportInstructions}
-          onChange={(e) => setReportInstructions(e.target.value)}
-          placeholder="例：回答者の全体的な傾向と、賛否が分かれたポイントをまとめてほしい"
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-          rows={4}
-        />
+          <svg
+            className={`w-4 h-4 transition-transform ${showAdvanced ? "rotate-90" : ""}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+          詳細設定
+        </button>
       </div>
 
-      <div>
-        <label
-          htmlFor="reportTarget"
-          className="block text-sm font-medium text-gray-700 mb-2"
-        >
-          回答数
-        </label>
-        <p className="text-xs text-gray-500 mb-2">
-          何問回答したらレポートを生成するかを設定します。5の倍数で指定できます。
-        </p>
-        <select
-          id="reportTarget"
-          value={reportTarget}
-          onChange={(e) => setReportTarget(Number(e.target.value))}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-        >
-          {Array.from({ length: 19 }, (_, i) => (i + 1) * 5).map((n) => (
-            <option key={n} value={n}>
-              {n}問{n === 25 ? "（デフォルト）" : ""}
-            </option>
-          ))}
-        </select>
-      </div>
+      {showAdvanced && (
+        <div className="space-y-6 pl-2 border-l-2 border-gray-200">
+          <div>
+            <label
+              htmlFor="reportInstructions"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              回答後レポートの生成指示（任意）
+            </label>
+            <p className="text-xs text-gray-500 mb-2">
+              回答者が全問回答した後に表示されるレポートの内容やフォーマットに関する指示があれば入力してください。
+            </p>
+            <textarea
+              id="reportInstructions"
+              value={reportInstructions}
+              onChange={(e) => setReportInstructions(e.target.value)}
+              placeholder="例：回答者の全体的な傾向と、賛否が分かれたポイントをまとめてほしい"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              rows={4}
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="reportTarget"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              回答数
+            </label>
+            <p className="text-xs text-gray-500 mb-2">
+              何問回答したらレポートを生成するかを設定します。5の倍数で指定できます。
+            </p>
+            <select
+              id="reportTarget"
+              value={reportTarget}
+              onChange={(e) => setReportTarget(Number(e.target.value))}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+            >
+              {Array.from({ length: 19 }, (_, i) => (i + 1) * 5).map((n) => (
+                <option key={n} value={n}>
+                  {n}問{n === 25 ? "（デフォルト）" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
