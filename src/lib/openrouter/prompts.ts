@@ -268,3 +268,123 @@ ${qaFull}
 ## 出力形式
 Markdown形式でレポートを出力してください。上記の構成に従い、見出し（##）を使って構造化してください。`;
 }
+
+// ─── Survey Aggregate Report ─────────────────────────────────────────────────
+
+export interface SurveyReportParticipant {
+  userNumber: number; // sequential: 1, 2, 3, …
+  sessionId: string;
+  qa: Array<{
+    index: number;
+    statement: string;
+    detail: string;
+    options: string[];
+    selectedOption: number;
+    freeText?: string | null;
+  }>;
+  personalReport: string | null; // latest report_text, or null
+}
+
+export interface SurveyReportGenerationContext {
+  purpose: string;
+  backgroundText: string;
+  reportInstructions?: string;
+  customInstructions?: string;
+  participants: SurveyReportParticipant[];
+}
+
+export function buildSurveyReportPrompt(
+  ctx: SurveyReportGenerationContext
+): string {
+  // Build per-participant blocks
+  const participantBlocks = ctx.participants
+    .map((p) => {
+      const qaBlock = p.qa
+        .map((qa) => {
+          const answerText = formatAnswerText(
+            qa.options,
+            qa.selectedOption,
+            qa.freeText
+          );
+          return `[U${p.userNumber}-Q${qa.index}] ${qa.statement}\n詳細: ${qa.detail}\n選択: ${answerText}`;
+        })
+        .join("\n\n");
+
+      const reportBlock = p.personalReport
+        ? `#### 個人レポート\n${p.personalReport}`
+        : "#### 個人レポート\nまだ生成されていません";
+
+      return `### 参加者 U${p.userNumber}（回答数: ${p.qa.length}）
+
+#### 回答一覧
+${qaBlock}
+
+${reportBlock}`;
+    })
+    .join("\n\n---\n\n");
+
+  const reportInstructionsSection = ctx.reportInstructions
+    ? `## アンケート設計者からのレポート指示\n${ctx.reportInstructions}\n\n`
+    : "";
+
+  const customInstructionsSection = ctx.customInstructions
+    ? `## レポート生成時の追加指示\n${ctx.customInstructions}\n\n`
+    : "";
+
+  return `あなたは調査分析の専門家であり、複数の回答者のデータから全体傾向を読み解くプロフェッショナルです。
+以下のアンケートの全参加者の回答データと個人レポートをもとに、全体を俯瞰する総合レポートを作成してください。
+
+## アンケートの目的
+${ctx.purpose}
+
+## 背景情報
+${ctx.backgroundText || "特になし"}
+
+${reportInstructionsSection}${customInstructionsSection}## 参加者データ（全${ctx.participants.length}名）
+
+${participantBlocks}
+
+## レポート作成の指針
+
+### トーンと姿勢
+- 客観的・分析的でありながら、参加者の多様な声を尊重する
+- データに基づいた洞察を提供する
+- 単純な多数決ではなく、意見の分布やニュアンスを捉える
+
+### 必須の構成
+
+1. **全体概要**（400-600文字）
+   - 参加者全体から見えてくる傾向の概観
+   - 回答者数、回答の完了度などの基本的な統計情報
+
+2. **主要な傾向と合意点**（600-1000文字）
+   - 多くの参加者が共通して示した傾向や価値観
+   - 具体的な質問番号を引用しながら根拠を示す
+   - 例: 「多くの参加者が効率性を重視する傾向を示しました [U1-Q12][U3-Q12][U5-Q12]」
+
+3. **意見が分かれたポイント**（600-1000文字）
+   - 参加者間で回答が大きく分かれた質問やテーマ
+   - 対立する意見の両方を公平に紹介する
+   - 具体的な引用で裏付ける
+
+4. **特徴的な回答・少数意見**（400-800文字）
+   - 少数だが注目すべき回答やユニークな視点
+   - 自由記述で特に印象的だった内容
+
+5. **個人レポートから見える深層的傾向**（400-800文字）
+   - 各参加者の個人レポートを横断的に分析して見えてくるパターン
+   - 個人レポートに共通して現れるテーマや価値観
+
+6. **まとめと示唆**（300-500文字）
+   - 全体として何が言えるか
+   - このデータから得られる知見や次のアクションへの示唆
+
+### 引用形式
+- 特定の参加者の特定の質問への回答を引用するときは [U1-Q12] のように参加者番号と質問番号を角括弧で囲む
+- 複数引用は [U1-Q12][U3-Q12][U5-Q12] のように連続させる
+- 参加者番号は U1, U2, U3, ... の形式（上記データの順番に対応）
+- 質問番号は Q1, Q2, Q3, ... の形式
+
+## 出力形式
+Markdown形式でレポートを出力してください。上記の構成に従い、見出し（##）を使って構造化してください。`;
+}

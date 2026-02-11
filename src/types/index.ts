@@ -151,3 +151,22 @@ export interface CreatePresetResponse {
     adminToken: string;
   };
 }
+
+// Survey (aggregate) reports
+export interface SurveyReport {
+  id: string;
+  preset_id: string;
+  version: number;
+  report_text: string;
+  custom_instructions: string | null;
+  status: "generating" | "completed" | "failed";
+  created_at: string;
+}
+
+export interface GenerateSurveyReportRequest {
+  customInstructions?: string;
+}
+
+export interface GenerateSurveyReportResponse {
+  report: SurveyReport;
+}

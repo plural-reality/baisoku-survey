@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { SurveyReportSection } from "./survey-report-section";
 import { QRCodeSVG } from "qrcode.react";
 
 interface PresetInfo {
@@ -34,11 +35,22 @@ interface ReportInfo {
   report_text: string;
 }
 
+interface SurveyReportInfo {
+  id: string;
+  preset_id: string;
+  version: number;
+  report_text: string;
+  custom_instructions: string | null;
+  status: "generating" | "completed" | "failed";
+  created_at: string;
+}
+
 interface AdminData {
   preset: PresetInfo;
   sessions: SessionInfo[];
   responses: ResponseInfo[];
   reports: ReportInfo[];
+  surveyReports: SurveyReportInfo[];
 }
 
 export function AdminDashboard({ token }: { token: string }) {
@@ -46,6 +58,7 @@ export function AdminDashboard({ token }: { token: string }) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
+  const [surveyReports, setSurveyReports] = useState<SurveyReportInfo[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -59,6 +72,7 @@ export function AdminDashboard({ token }: { token: string }) {
         }
         const json = await response.json();
         setData(json);
+        setSurveyReports(json.surveyReports || []);
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "予期せぬエラーが発生しました"
@@ -70,6 +84,10 @@ export function AdminDashboard({ token }: { token: string }) {
 
     fetchData();
   }, [token]);
+
+  const handleSurveyReportGenerated = (report: SurveyReportInfo) => {
+    setSurveyReports((prev) => [report, ...prev]);
+  };
 
   if (loading) {
     return (
@@ -131,6 +149,15 @@ export function AdminDashboard({ token }: { token: string }) {
         <StatCard label="完了" value={completedSessions.length} />
         <StatCard label="回答中" value={activeSessions.length} />
       </div>
+
+      {/* Survey aggregate report */}
+      <SurveyReportSection
+        token={token}
+        surveyReports={surveyReports}
+        sessions={sessions}
+        responses={responses}
+        onReportGenerated={handleSurveyReportGenerated}
+      />
 
       {/* Sessions list */}
       <div>
