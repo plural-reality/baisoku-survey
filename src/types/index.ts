@@ -21,6 +21,7 @@ export interface Session {
   status: "active" | "completed" | "paused";
   current_question_index: number;
   preset_id: string | null;
+  report_target: number;
   created_at: string;
   updated_at: string;
 }
@@ -80,6 +81,7 @@ export interface CreateSessionRequest {
   backgroundText?: string;
   title?: string;
   reportInstructions?: string;
+  reportTarget?: number;
 }
 
 export interface CreateSessionResponse {
@@ -138,6 +140,7 @@ export interface CreatePresetRequest {
   purpose: string;
   backgroundText?: string;
   reportInstructions?: string;
+  reportTarget?: number;
   ogTitle?: string;
   ogDescription?: string;
 }
@@ -147,4 +150,23 @@ export interface CreatePresetResponse {
     slug: string;
     adminToken: string;
   };
+}
+
+// Survey (aggregate) reports
+export interface SurveyReport {
+  id: string;
+  preset_id: string;
+  version: number;
+  report_text: string;
+  custom_instructions: string | null;
+  status: "generating" | "completed" | "failed";
+  created_at: string;
+}
+
+export interface GenerateSurveyReportRequest {
+  customInstructions?: string;
+}
+
+export interface GenerateSurveyReportResponse {
+  report: SurveyReport;
 }

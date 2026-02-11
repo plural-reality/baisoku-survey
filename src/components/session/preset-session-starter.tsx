@@ -28,6 +28,7 @@ export function PresetSessionStarter({ preset }: PresetSessionStarterProps) {
             title: preset.title,
             reportInstructions: preset.reportInstructions,
             presetId: preset.id,
+            reportTarget: preset.reportTarget,
           }),
         });
 

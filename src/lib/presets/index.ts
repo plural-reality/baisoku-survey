@@ -7,6 +7,7 @@ export interface SessionPreset {
   purpose: string;
   backgroundText?: string;
   reportInstructions?: string;
+  reportTarget?: number;
 }
 
 export interface PresetMetadata {
@@ -41,7 +42,7 @@ export async function getPresetFromDB(slug: string): Promise<SessionPreset | nul
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("presets")
-      .select("id, title, purpose, background_text, report_instructions")
+      .select("id, title, purpose, background_text, report_instructions, report_target")
       .eq("slug", slug)
       .single();
 
@@ -53,6 +54,7 @@ export async function getPresetFromDB(slug: string): Promise<SessionPreset | nul
       purpose: data.purpose,
       backgroundText: data.background_text ?? undefined,
       reportInstructions: data.report_instructions ?? undefined,
+      reportTarget: data.report_target ?? undefined,
     };
   } catch {
     return null;

@@ -94,11 +94,19 @@ export async function GET(
       }
     }
 
+    // Fetch survey (aggregate) reports for this preset
+    const { data: surveyReportsData } = await supabase
+      .from("survey_reports")
+      .select("id, preset_id, version, report_text, custom_instructions, status, created_at")
+      .eq("preset_id", preset.id)
+      .order("version", { ascending: false });
+
     return NextResponse.json({
       preset,
       sessions: sessions || [],
       responses,
       reports,
+      surveyReports: surveyReportsData || [],
     });
   } catch (error) {
     console.error("Unexpected error:", error);
