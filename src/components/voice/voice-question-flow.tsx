@@ -270,11 +270,11 @@ export function VoiceQuestionFlow({ sessionId }: VoiceQuestionFlowProps) {
             </p>
           </div>
 
-          {session && (
+          {session?.title && (
             <div className="bg-gray-50 rounded-xl p-4 mb-8 text-left">
               <p className="text-xs text-gray-400 mb-1">テーマ</p>
               <p className="text-sm text-gray-700 leading-relaxed">
-                {session.purpose}
+                {session.title}
               </p>
             </div>
           )}
@@ -518,20 +518,10 @@ export function VoiceQuestionFlow({ sessionId }: VoiceQuestionFlowProps) {
                 </p>
               )}
 
-              {/* Subtle answer hints */}
-              <div className="flex items-center gap-4 mb-10">
-                <span className="text-xs text-gray-300 tracking-wide">
-                  はい
-                </span>
-                <span className="text-gray-200">·</span>
-                <span className="text-xs text-gray-300 tracking-wide">
-                  いいえ
-                </span>
-                <span className="text-gray-200">·</span>
-                <span className="text-xs text-gray-300 tracking-wide">
-                  どちらでもない
-                </span>
-              </div>
+              {/* Answer guidance */}
+              <p className="text-sm text-gray-400 mb-8">
+                同意するなら「はい」、違うなら「いいえ」と答えてください。他に思うことがあれば自由にどうぞ。
+              </p>
 
               {/* Transcript display */}
               <div className="min-h-[80px] mb-8">
