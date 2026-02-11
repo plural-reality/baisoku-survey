@@ -8,28 +8,54 @@ export interface PhaseProfile {
   ranges: PhaseRange[];
 }
 
-export const DEFAULT_PHASE_PROFILE: PhaseProfile = {
-  ranges: [
-    { start: 1, end: 5, phase: "exploration" },
-    { start: 6, end: 10, phase: "exploration" },
-    { start: 11, end: 15, phase: "reframing" },
-    { start: 16, end: 20, phase: "deep-dive" },
-    { start: 21, end: 25, phase: "exploration" },
-    { start: 26, end: 30, phase: "reframing" },
-    { start: 31, end: 35, phase: "deep-dive" },
-    { start: 36, end: 40, phase: "exploration" },
-    { start: 41, end: 45, phase: "reframing" },
-    { start: 46, end: 50, phase: "deep-dive" },
-  ],
-};
+export const DEFAULT_REPORT_TARGET = 25;
+
+/**
+ * Phase cycle for batches after the initial exploration phase.
+ * deep-dive → reframing → exploration, repeating.
+ */
+const PHASE_CYCLE: Array<"exploration" | "deep-dive" | "reframing"> = [
+  "deep-dive",
+  "reframing",
+  "exploration",
+];
+
+/**
+ * Generate a phase profile for the given report target.
+ *
+ * Batch 1-2 (questions 1-10): exploration
+ * Batch 3+: deep-dive → reframing → exploration (repeating cycle)
+ */
+export function generatePhaseProfile(reportTarget: number = DEFAULT_REPORT_TARGET): PhaseProfile {
+  const batchCount = reportTarget / 5;
+  const ranges: PhaseRange[] = [];
+
+  for (let i = 0; i < batchCount; i++) {
+    const start = i * 5 + 1;
+    const end = (i + 1) * 5;
+    const phase = i < 2
+      ? "exploration"
+      : PHASE_CYCLE[(i - 2) % PHASE_CYCLE.length];
+
+    ranges.push({ start, end, phase });
+  }
+
+  return { ranges };
+}
+
+export const DEFAULT_PHASE_PROFILE: PhaseProfile = generatePhaseProfile(DEFAULT_REPORT_TARGET);
 
 export function getPhaseForQuestionIndex(
   questionIndex: number,
   phaseProfile: PhaseProfile = DEFAULT_PHASE_PROFILE
 ): "exploration" | "deep-dive" | "reframing" {
-  // For questions beyond 50, cycle through phases
+  const maxEnd = phaseProfile.ranges.length > 0
+    ? phaseProfile.ranges[phaseProfile.ranges.length - 1].end
+    : 50;
+
+  // For questions beyond the profile range, cycle through phases
   const normalizedIndex =
-    questionIndex > 50 ? ((questionIndex - 1) % 50) + 1 : questionIndex;
+    questionIndex > maxEnd ? ((questionIndex - 1) % maxEnd) + 1 : questionIndex;
 
   for (const range of phaseProfile.ranges) {
     if (normalizedIndex >= range.start && normalizedIndex <= range.end) {

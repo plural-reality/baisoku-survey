@@ -9,6 +9,7 @@ import { AnalysisSkeleton } from "@/components/analysis/analysis-skeleton";
 import { ReportPreview } from "@/components/report/report-preview";
 import { Progress } from "@/components/ui/progress";
 import { useSession } from "@/hooks/use-session";
+import { DEFAULT_REPORT_TARGET } from "@/lib/utils/phase";
 
 interface QuestionFlowProps {
   sessionId: string;
@@ -17,7 +18,6 @@ interface QuestionFlowProps {
 }
 
 const BATCH_SIZE = 5;
-const REPORT_TARGET = 50;
 
 export function QuestionFlow({
   sessionId,
@@ -43,6 +43,8 @@ export function QuestionFlow({
     refreshToken: warmupStatus,
   });
 
+  const reportTarget = session?.report_target ?? DEFAULT_REPORT_TARGET;
+
   const [pendingAnswer, setPendingAnswer] = useState<{
     questionId: string;
     optionIndex: number;
@@ -64,7 +66,7 @@ export function QuestionFlow({
   const answeredCount = questions.filter(
     (q) => q.selectedOption !== null
   ).length;
-  const progressTotal = Math.max(REPORT_TARGET, questions.length);
+  const progressTotal = Math.max(reportTarget, questions.length);
 
   // Find unanswered questions
   const unansweredQuestions = questions.filter(
@@ -214,9 +216,9 @@ export function QuestionFlow({
         contentBlocks.push({ type: "analysis" as const, item: analysis });
       }
 
-      // Insert finish banner after 50th question's analysis (only when all 50 are answered)
-      const targetBatchIndex = REPORT_TARGET / BATCH_SIZE;
-      if (batchIndex === targetBatchIndex && answeredCount >= REPORT_TARGET) {
+      // Insert finish banner after target question's analysis (only when all target questions are answered)
+      const targetBatchIndex = reportTarget / BATCH_SIZE;
+      if (batchIndex === targetBatchIndex && answeredCount >= reportTarget) {
         contentBlocks.push({ type: "finish-banner" as const });
       }
 
@@ -262,7 +264,7 @@ export function QuestionFlow({
       {/* Fixed progress header */}
       <div className="sticky top-0 bg-gray-50 py-4 z-10 border-b border-gray-200 -mx-4 px-4">
         <Progress current={answeredCount} total={progressTotal} />
-        {answeredCount >= REPORT_TARGET && !isFinishing && (
+        {answeredCount >= reportTarget && !isFinishing && (
           <div className="mt-3 text-center">
             <button
               onClick={handleFinish}
@@ -285,7 +287,7 @@ export function QuestionFlow({
           </div>
         )}
         {answeredCount >= BATCH_SIZE &&
-          answeredCount < REPORT_TARGET &&
+          answeredCount < reportTarget &&
           answeredCount % BATCH_SIZE === 0 && (
           <div className="mt-3 text-center">
             <button
@@ -362,7 +364,7 @@ export function QuestionFlow({
                 className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-6 text-center"
               >
                 <div className="text-2xl font-bold text-blue-800 mb-2">
-                  🎉 50問の回答が完了しました！
+                  🎉 {reportTarget}問の回答が完了しました！
                 </div>
                 <p className="text-gray-600 mb-4">
                   十分なデータが集まりました。結果を確認できます。

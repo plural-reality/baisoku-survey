@@ -22,6 +22,7 @@ export interface Session {
   status: "active" | "completed" | "paused";
   current_question_index: number;
   preset_id: string | null;
+  report_target: number;
   created_at: string;
   updated_at: string;
 }
@@ -81,6 +82,7 @@ export interface CreateSessionRequest {
   backgroundText?: string;
   title?: string;
   reportInstructions?: string;
+  reportTarget?: number;
 }
 
 export interface CreateSessionResponse {
@@ -140,6 +142,7 @@ export interface CreatePresetRequest {
   backgroundText?: string;
   reportInstructions?: string;
   keyQuestions?: string[];
+  reportTarget?: number;
   ogTitle?: string;
   ogDescription?: string;
 }

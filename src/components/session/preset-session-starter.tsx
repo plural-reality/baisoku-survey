@@ -29,6 +29,7 @@ export function PresetSessionStarter({ preset }: PresetSessionStarterProps) {
             reportInstructions: preset.reportInstructions,
             keyQuestions: preset.keyQuestions,
             presetId: preset.id,
+            reportTarget: preset.reportTarget,
           }),
         });
 

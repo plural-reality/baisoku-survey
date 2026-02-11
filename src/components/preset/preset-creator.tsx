@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
+import { PdfUpload } from "@/components/session/pdf-upload";
 
 interface CreatedPreset {
   slug: string;
@@ -14,6 +15,7 @@ export function PresetCreator() {
   const [reportInstructions, setReportInstructions] = useState("");
   const [keyQuestions, setKeyQuestions] = useState<string[]>([]);
   const [isGeneratingKeyQuestions, setIsGeneratingKeyQuestions] = useState(false);
+  const [reportTarget, setReportTarget] = useState(25);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<CreatedPreset | null>(null);
@@ -82,6 +84,10 @@ export function PresetCreator() {
     });
   };
 
+  const handlePdfExtract = (text: string) => {
+    setBackgroundText((prev) => prev + "\n\n--- PDF Content ---\n" + text);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -100,6 +106,7 @@ export function PresetCreator() {
           reportInstructions: reportInstructions || undefined,
           keyQuestions:
             filteredKeyQuestions.length > 0 ? filteredKeyQuestions : undefined,
+          reportTarget,
         }),
       });
 
@@ -227,6 +234,8 @@ export function PresetCreator() {
         />
       </div>
 
+      <PdfUpload onExtract={handlePdfExtract} />
+
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className="block text-sm font-medium text-gray-700">
@@ -348,6 +357,30 @@ export function PresetCreator() {
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
           rows={4}
         />
+      </div>
+
+      <div>
+        <label
+          htmlFor="reportTarget"
+          className="block text-sm font-medium text-gray-700 mb-2"
+        >
+          回答数
+        </label>
+        <p className="text-xs text-gray-500 mb-2">
+          何問回答したらレポートを生成するかを設定します。5の倍数で指定できます。
+        </p>
+        <select
+          id="reportTarget"
+          value={reportTarget}
+          onChange={(e) => setReportTarget(Number(e.target.value))}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+        >
+          {Array.from({ length: 19 }, (_, i) => (i + 1) * 5).map((n) => (
+            <option key={n} value={n}>
+              {n}問{n === 25 ? "（デフォルト）" : ""}
+            </option>
+          ))}
+        </select>
       </div>
 
       {error && (

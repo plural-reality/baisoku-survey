@@ -8,6 +8,7 @@ export function SessionForm() {
   const router = useRouter();
   const [purpose, setPurpose] = useState("");
   const [backgroundText, setBackgroundText] = useState("");
+  const [reportTarget, setReportTarget] = useState(25);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,7 +25,7 @@ export function SessionForm() {
       const response = await fetch("/api/sessions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ purpose, backgroundText }),
+        body: JSON.stringify({ purpose, backgroundText, reportTarget }),
       });
 
       if (!response.ok) {
@@ -96,6 +97,30 @@ export function SessionForm() {
       </div>
 
       <PdfUpload onExtract={handlePdfExtract} />
+
+      <div>
+        <label
+          htmlFor="reportTarget"
+          className="block text-sm font-medium text-gray-700 mb-2"
+        >
+          回答数
+        </label>
+        <p className="text-xs text-gray-500 mb-2">
+          何問回答したらレポートを生成するかを設定します。
+        </p>
+        <select
+          id="reportTarget"
+          value={reportTarget}
+          onChange={(e) => setReportTarget(Number(e.target.value))}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+        >
+          {Array.from({ length: 19 }, (_, i) => (i + 1) * 5).map((n) => (
+            <option key={n} value={n}>
+              {n}問{n === 25 ? "（デフォルト）" : ""}
+            </option>
+          ))}
+        </select>
+      </div>
 
       {error && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
