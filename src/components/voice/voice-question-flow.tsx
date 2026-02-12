@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "@/hooks/use-session";
 import { useDeepgramSTT } from "@/hooks/use-deepgram-stt";
 import { cn } from "@/lib/utils/cn";
+import { DEFAULT_REPORT_TARGET } from "@/lib/utils/phase";
 import { VoiceRecordingIndicator } from "./voice-recording-indicator";
 import { AnalysisBlock } from "@/components/analysis/analysis-block";
 import { AnalysisSkeleton } from "@/components/analysis/analysis-skeleton";
@@ -14,7 +15,6 @@ interface VoiceQuestionFlowProps {
 }
 
 const BATCH_SIZE = 5;
-const REPORT_TARGET = 50;
 const FREE_TEXT_OPTION_INDEX = 6;
 
 export function VoiceQuestionFlow({ sessionId }: VoiceQuestionFlowProps) {
@@ -42,6 +42,8 @@ export function VoiceQuestionFlow({ sessionId }: VoiceQuestionFlowProps) {
     stop: stopSTT,
     clearTranscript,
   } = useDeepgramSTT({ language: "ja" });
+
+  const reportTarget = session?.report_target ?? DEFAULT_REPORT_TARGET;
 
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [processingBatch, setProcessingBatch] = useState(false);
@@ -384,7 +386,7 @@ export function VoiceQuestionFlow({ sessionId }: VoiceQuestionFlowProps) {
           <div className="max-w-lg mx-auto">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs text-gray-400">
-                {answeredCount} / {Math.max(REPORT_TARGET, questions.length)}
+                {answeredCount} / {Math.max(reportTarget, questions.length)}
               </span>
               {answeredCount >= BATCH_SIZE && (
                 <button
@@ -399,7 +401,7 @@ export function VoiceQuestionFlow({ sessionId }: VoiceQuestionFlowProps) {
               <div
                 className="h-full bg-gray-900 rounded-full transition-all duration-500 ease-out"
                 style={{
-                  width: `${(answeredCount / Math.max(REPORT_TARGET, questions.length)) * 100}%`,
+                  width: `${(answeredCount / Math.max(reportTarget, questions.length)) * 100}%`,
                 }}
               />
             </div>
@@ -457,7 +459,7 @@ export function VoiceQuestionFlow({ sessionId }: VoiceQuestionFlowProps) {
           {/* Progress */}
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs text-gray-400">
-              {answeredCount + 1} / {Math.max(REPORT_TARGET, questions.length)}
+              {answeredCount + 1} / {Math.max(reportTarget, questions.length)}
             </span>
             {isConnected && <VoiceRecordingIndicator />}
             {answeredCount >= BATCH_SIZE && (
@@ -475,7 +477,7 @@ export function VoiceQuestionFlow({ sessionId }: VoiceQuestionFlowProps) {
             <div
               className="h-full bg-gray-900 rounded-full transition-all duration-500 ease-out"
               style={{
-                width: `${(answeredCount / Math.max(REPORT_TARGET, questions.length)) * 100}%`,
+                width: `${(answeredCount / Math.max(reportTarget, questions.length)) * 100}%`,
               }}
             />
           </div>
@@ -535,15 +537,23 @@ export function VoiceQuestionFlow({ sessionId }: VoiceQuestionFlowProps) {
                           {partialTranscript}
                         </span>
                       )}
+                      {isConnected && (
+                        <span className="inline-block w-0.5 h-4 bg-gray-400 ml-0.5 align-middle animate-pulse" />
+                      )}
                     </p>
                   </div>
                 ) : (
                   <div className="bg-gray-50/50 rounded-xl p-4 border border-dashed border-gray-200">
-                    <p className="text-sm text-gray-300 text-center">
-                      {isConnected
-                        ? "声に出して回答してください..."
-                        : "マイクに接続中..."}
-                    </p>
+                    {isConnected ? (
+                      <p className="text-sm text-gray-300 text-center flex items-center justify-center gap-1">
+                        <span>声に出して回答してください</span>
+                        <span className="inline-block w-0.5 h-4 bg-gray-300 animate-pulse" />
+                      </p>
+                    ) : (
+                      <p className="text-sm text-gray-300 text-center">
+                        マイクに接続中...
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

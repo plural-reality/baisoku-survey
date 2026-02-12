@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { getPreset } from "@/lib/presets";
+import { DEFAULT_REPORT_TARGET } from "@/lib/utils/phase";
 
 const PARTIES = [
   { name: "自由民主党", shortName: "自民", color: "#DC2626" },
@@ -22,6 +23,7 @@ export function Shugiin2026Welcome() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reportTarget, setReportTarget] = useState(DEFAULT_REPORT_TARGET);
   const initStarted = useRef(false);
 
   // ページ表示時にバックグラウンドでセッション作成＆質問生成
@@ -36,6 +38,9 @@ export function Shugiin2026Welcome() {
           throw new Error("プリセットが見つかりません");
         }
 
+        const presetReportTarget = preset.reportTarget ?? DEFAULT_REPORT_TARGET;
+        setReportTarget(presetReportTarget);
+
         // セッション作成
         const response = await fetch("/api/sessions", {
           method: "POST",
@@ -45,6 +50,7 @@ export function Shugiin2026Welcome() {
             backgroundText: preset.backgroundText,
             title: preset.title,
             reportInstructions: preset.reportInstructions,
+            reportTarget: presetReportTarget,
           }),
         });
 
@@ -186,7 +192,7 @@ export function Shugiin2026Welcome() {
             </div>
             <div>
               <p className="text-gray-400 mb-1">質問数</p>
-              <p className="text-gray-700">50問</p>
+              <p className="text-gray-700">{reportTarget}問</p>
             </div>
           </div>
         </section>

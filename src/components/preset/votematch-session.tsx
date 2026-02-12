@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { QuestionFlow } from "@/components/question/question-flow";
+import { DEFAULT_REPORT_TARGET } from "@/lib/utils/phase";
 
 const PARTIES = [
   { name: "自由民主党", shortName: "自民", color: "#DC2626" },
@@ -22,6 +23,7 @@ interface VotematchSessionProps {
 
 export function VotematchSession({ sessionId }: VotematchSessionProps) {
   const [showWelcome, setShowWelcome] = useState(true);
+  const [reportTarget, setReportTarget] = useState(DEFAULT_REPORT_TARGET);
   const [warmupStatus, setWarmupStatus] = useState<
     "idle" | "running" | "done" | "error"
   >("idle");
@@ -52,6 +54,10 @@ export function VotematchSession({ sessionId }: VotematchSessionProps) {
         const data = await response.json();
         if (cancelled) {
           return;
+        }
+
+        if (data?.session?.report_target) {
+          setReportTarget(data.session.report_target);
         }
 
         const existingQuestions = Array.isArray(data?.questions)
@@ -185,7 +191,7 @@ export function VotematchSession({ sessionId }: VotematchSessionProps) {
           </div>
           <div>
             <p className="text-gray-400 mb-1">質問数</p>
-            <p className="text-gray-700">50問</p>
+            <p className="text-gray-700">{reportTarget}問</p>
           </div>
         </div>
       </section>
