@@ -21,6 +21,7 @@ export interface Database {
           phase_profile: Json;
           status: "active" | "completed" | "paused";
           current_question_index: number;
+          form_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -35,6 +36,7 @@ export interface Database {
           phase_profile?: Json;
           status?: "active" | "completed" | "paused";
           current_question_index?: number;
+          form_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -49,6 +51,7 @@ export interface Database {
           phase_profile?: Json;
           status?: "active" | "completed" | "paused";
           current_question_index?: number;
+          form_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -65,6 +68,7 @@ export interface Database {
           source: string | null;
           question_type: string;
           scale_config: Json | null;
+          form_question_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -78,6 +82,7 @@ export interface Database {
           source?: string | null;
           question_type?: string;
           scale_config?: Json | null;
+          form_question_id?: string | null;
           created_at?: string;
         };
         Update: {
@@ -91,6 +96,7 @@ export interface Database {
           source?: string | null;
           question_type?: string;
           scale_config?: Json | null;
+          form_question_id?: string | null;
           created_at?: string;
         };
       };
@@ -179,6 +185,106 @@ export interface Database {
           version?: number;
           report_text?: string;
           created_at?: string;
+        };
+      };
+      forms: {
+        Row: {
+          id: string;
+          slug: string;
+          user_id: string;
+          title: string;
+          purpose: string;
+          background_text: string | null;
+          report_instructions: string | null;
+          exploration_themes: Json;
+          report_target: number;
+          status: "draft" | "published" | "closed";
+          og_title: string | null;
+          og_description: string | null;
+          settings: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          slug: string;
+          user_id: string;
+          title: string;
+          purpose: string;
+          background_text?: string | null;
+          report_instructions?: string | null;
+          exploration_themes?: Json;
+          report_target?: number;
+          status?: "draft" | "published" | "closed";
+          og_title?: string | null;
+          og_description?: string | null;
+          settings?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          slug?: string;
+          user_id?: string;
+          title?: string;
+          purpose?: string;
+          background_text?: string | null;
+          report_instructions?: string | null;
+          exploration_themes?: Json;
+          report_target?: number;
+          status?: "draft" | "published" | "closed";
+          og_title?: string | null;
+          og_description?: string | null;
+          settings?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      form_questions: {
+        Row: {
+          id: string;
+          form_id: string;
+          position: number;
+          statement: string;
+          detail: string | null;
+          question_type: string;
+          options: Json;
+          scale_config: Json | null;
+          is_required: boolean;
+          source: string;
+          settings: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          form_id: string;
+          position: number;
+          statement: string;
+          detail?: string | null;
+          question_type?: string;
+          options?: Json;
+          scale_config?: Json | null;
+          is_required?: boolean;
+          source?: string;
+          settings?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          form_id?: string;
+          position?: number;
+          statement?: string;
+          detail?: string | null;
+          question_type?: string;
+          options?: Json;
+          scale_config?: Json | null;
+          is_required?: boolean;
+          source?: string;
+          settings?: Json;
+          created_at?: string;
+          updated_at?: string;
         };
       };
     };
