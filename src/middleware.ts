@@ -29,8 +29,31 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Refresh the session token. No redirects — unauthenticated users pass through.
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Protected routes: require login
+  const { pathname } = request.nextUrl;
+  const isProtected =
+    pathname === "/" ||
+    pathname === "/create" ||
+    pathname.startsWith("/manage");
+
+  if (isProtected && !user) {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/login";
+    loginUrl.searchParams.set("next", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Already logged in — skip login page
+  if (pathname === "/login" && user) {
+    const homeUrl = request.nextUrl.clone();
+    homeUrl.pathname = "/";
+    homeUrl.search = "";
+    return NextResponse.redirect(homeUrl);
+  }
 
   return supabaseResponse;
 }

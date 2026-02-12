@@ -13,8 +13,9 @@ export async function GET(request: NextRequest) {
     | "email_change"
     | "email"
     | null;
+  const next = searchParams.get("next");
 
-  const redirectTo = new URL("/", request.url);
+  const redirectTo = new URL(next || "/", request.url);
   const supabase = await createClient();
 
   // PKCE flow — Supabase sends ?code=... for magic links

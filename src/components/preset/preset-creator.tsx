@@ -460,8 +460,7 @@ export function PresetCreator() {
         </legend>
 
         <p className="text-xs text-blue-700/70">
-          Google
-          Formsのように、全回答者に同じ質問を出します。これに加えて、AIが各回答者に合わせた深掘り質問を自動追加します。
+          追加すると、全回答者に同じ質問が必須で表示されます。AIが各回答者に合わせた深掘り質問も自動追加します。
         </p>
 
         {fixedQuestions.map((q, qIndex) => {

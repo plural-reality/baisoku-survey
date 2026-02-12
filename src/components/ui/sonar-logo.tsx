@@ -1,17 +1,28 @@
 import Link from "next/link";
 
-export function SonarLogo({ className = "" }: { className?: string }) {
+export function SonarLogo({ className = "", iconOnly = false }: { className?: string; iconOnly?: boolean }) {
   return (
     <Link
       href="/"
-      className={`inline-block text-[var(--foreground)] no-underline ${className}`}
+      className={`inline-flex items-center gap-1.5 text-[var(--foreground)] no-underline ${className}`}
+      title="ホームに戻る"
     >
-      <span
-        className="inline-block font-black italic tracking-tighter text-lg leading-none"
-        style={{ transform: "skewX(-6deg)" }}
-      >
-        倍速アンケート
-      </span>
+      <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="2" />
+        <path d="M12 2a10 10 0 0 1 0 20" opacity=".3" />
+        <path d="M16.24 7.76a6 6 0 0 1 0 8.49" />
+        <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+        <path d="M7.76 16.24a6 6 0 0 1 0-8.49" />
+        <path d="M4.93 19.07a10 10 0 0 1 0-14.14" />
+      </svg>
+      {!iconOnly && (
+        <span
+          className="inline-block font-black italic tracking-tighter text-lg leading-none"
+          style={{ transform: "skewX(-6deg)" }}
+        >
+          倍速アンケート
+        </span>
+      )}
     </Link>
   );
 }

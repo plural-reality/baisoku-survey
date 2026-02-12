@@ -53,7 +53,7 @@ export function QuestionCard({
   if (isFixedQuestion && qt !== "radio") {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-5 md:p-6 shadow-sm">
-        <QuestionHeader statement={statement} detail={detail} />
+        <QuestionHeader statement={statement} detail={detail} required />
         <div className="space-y-3">
           {qt === "checkbox" && (
             <CheckboxAnswer
@@ -103,7 +103,7 @@ export function QuestionCard({
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5 md:p-6 shadow-sm">
-      <QuestionHeader statement={statement} detail={detail} />
+      <QuestionHeader statement={statement} detail={detail} required={isFixedQuestion} />
       <div className="space-y-3">
         {isFixedQuestion ? (
           <FixedRadioAnswer
@@ -129,11 +129,12 @@ export function QuestionCard({
 
 // --- Sub-components ---
 
-function QuestionHeader({ statement, detail }: { statement: string; detail: string }) {
+function QuestionHeader({ statement, detail, required }: { statement: string; detail: string; required?: boolean }) {
   return (
     <div className="mb-5">
       <h3 className="text-lg font-semibold text-gray-900 mb-2 leading-snug">
         {statement}
+        {required && <span className="text-red-500 ml-1">*</span>}
       </h3>
       <p className="text-gray-600 text-sm leading-relaxed">{detail}</p>
     </div>
