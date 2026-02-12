@@ -1,6 +1,6 @@
 -- Survey reports: aggregate reports for an entire preset (all participants)
 CREATE TABLE survey_reports (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     preset_id UUID NOT NULL REFERENCES presets(id) ON DELETE CASCADE,
     version INTEGER NOT NULL DEFAULT 1,
     report_text TEXT NOT NULL DEFAULT '',

@@ -4,7 +4,7 @@
 -- 1. Create the admin tokens table
 CREATE TABLE preset_admin_tokens (
     preset_id UUID PRIMARY KEY REFERENCES presets(id) ON DELETE CASCADE,
-    admin_token UUID UNIQUE NOT NULL DEFAULT uuid_generate_v4(),
+    admin_token UUID UNIQUE NOT NULL DEFAULT gen_random_uuid(),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

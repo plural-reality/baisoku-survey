@@ -1,10 +1,8 @@
 -- Sonar Database Schema
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Sessions table
 CREATE TABLE sessions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT,
     purpose TEXT NOT NULL,
     background_text TEXT,
@@ -27,7 +25,7 @@ CREATE TABLE sessions (
 
 -- Questions table
 CREATE TABLE questions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
     question_index INTEGER NOT NULL,
     statement TEXT NOT NULL,
@@ -40,7 +38,7 @@ CREATE TABLE questions (
 
 -- Answers table
 CREATE TABLE answers (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     question_id UUID NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
     session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
     selected_option INTEGER NOT NULL CHECK (selected_option >= 0 AND selected_option <= 2),
@@ -51,7 +49,7 @@ CREATE TABLE answers (
 
 -- Analyses table
 CREATE TABLE analyses (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
     batch_index INTEGER NOT NULL,
     start_index INTEGER NOT NULL,
@@ -63,7 +61,7 @@ CREATE TABLE analyses (
 
 -- Reports table
 CREATE TABLE reports (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
     version INTEGER NOT NULL DEFAULT 1,
     report_text TEXT NOT NULL,

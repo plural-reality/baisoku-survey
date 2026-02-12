@@ -1,8 +1,8 @@
 -- Create presets table for user-created survey presets
 CREATE TABLE presets (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     slug TEXT UNIQUE NOT NULL,
-    admin_token UUID UNIQUE NOT NULL DEFAULT uuid_generate_v4(),
+    admin_token UUID UNIQUE NOT NULL DEFAULT gen_random_uuid(),
     title TEXT NOT NULL,
     purpose TEXT NOT NULL,
     background_text TEXT,
