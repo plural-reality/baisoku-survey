@@ -8,7 +8,7 @@ export function SessionForm() {
   const router = useRouter();
   const [purpose, setPurpose] = useState("");
   const [backgroundText, setBackgroundText] = useState("");
-  const [reportTarget, setReportTarget] = useState(25);
+  const [reportTarget, setReportTarget] = useState(10);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);

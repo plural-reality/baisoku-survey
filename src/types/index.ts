@@ -1,3 +1,20 @@
+export type QuestionType = 'radio' | 'checkbox' | 'dropdown' | 'text' | 'textarea' | 'scale';
+
+export interface ScaleConfig {
+  min: number;
+  max: number;
+  minLabel?: string;
+  maxLabel?: string;
+}
+
+export interface FixedQuestion {
+  statement: string;
+  detail: string;
+  options: string[];
+  question_type?: QuestionType;
+  scale_config?: ScaleConfig;
+}
+
 export interface Preset {
   id: string;
   slug: string;
@@ -6,6 +23,8 @@ export interface Preset {
   background_text: string | null;
   report_instructions: string | null;
   key_questions: string[];
+  fixed_questions: FixedQuestion[];
+  exploration_themes: string[];
   og_title: string | null;
   og_description: string | null;
   created_at: string;
@@ -18,6 +37,8 @@ export interface Session {
   purpose: string;
   background_text: string | null;
   report_instructions: string | null;
+  fixed_questions: FixedQuestion[];
+  exploration_themes: string[];
   phase_profile: PhaseProfile;
   status: "active" | "completed" | "paused";
   current_question_index: number;
@@ -43,17 +64,24 @@ export interface Question {
   detail: string | null;
   options: string[];
   phase: "exploration" | "deep-dive";
+  source?: "ai" | "fixed";
+  question_type?: QuestionType;
+  scale_config?: ScaleConfig | null;
   created_at: string;
   selectedOption?: number | null;
   freeText?: string | null;
+  selectedOptions?: number[] | null;
+  answerText?: string | null;
 }
 
 export interface Answer {
   id: string;
   question_id: string;
   session_id: string;
-  selected_option: number;
+  selected_option: number | null;
   free_text: string | null;
+  selected_options: number[] | null;
+  answer_text: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -102,8 +130,11 @@ export interface GenerateQuestionsResponse {
 export interface SaveAnswerRequest {
   sessionId: string;
   questionId: string;
-  selectedOption: number;
+  questionType?: QuestionType;
+  selectedOption?: number | null;
   freeText?: string | null;
+  selectedOptions?: number[] | null;
+  answerText?: string | null;
 }
 
 export interface SaveAnswerResponse {
@@ -142,6 +173,8 @@ export interface CreatePresetRequest {
   backgroundText?: string;
   reportInstructions?: string;
   keyQuestions?: string[];
+  fixedQuestions?: FixedQuestion[];
+  explorationThemes?: string[];
   reportTarget?: number;
   ogTitle?: string;
   ogDescription?: string;

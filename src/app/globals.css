@@ -1,8 +1,67 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #f9fafb;
   --foreground: #111827;
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --muted: #f3f4f6;
+  --muted-foreground: #6b7280;
+  --border: #e5e7eb;
+}
+
+.dark {
+  --background: #0f172a;
+  --foreground: #e2e8f0;
+  --card: #1e293b;
+  --card-foreground: #e2e8f0;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --border: #334155;
+  color-scheme: dark;
+
+  /* Invert Tailwind gray scale for automatic dark mode */
+  --color-gray-50: #0f172a;
+  --color-gray-100: #1e293b;
+  --color-gray-200: #334155;
+  --color-gray-300: #475569;
+  --color-gray-400: #64748b;
+  --color-gray-500: #94a3b8;
+  --color-gray-600: #cbd5e1;
+  --color-gray-700: #e2e8f0;
+  --color-gray-800: #f1f5f9;
+  --color-gray-900: #f8fafc;
+
+  /* Green palette (fieldset decorations) */
+  --color-green-50: #052e16;
+  --color-green-100: #14532d;
+  --color-green-200: #166534;
+  --color-green-700: #86efac;
+  --color-green-800: #bbf7d0;
+
+  /* Blue palette (fieldset decorations, tabs) */
+  --color-blue-50: #172554;
+  --color-blue-100: #1e3a5f;
+  --color-blue-200: #1e40af;
+  --color-blue-300: #2563eb;
+  --color-blue-700: #93c5fd;
+  --color-blue-800: #bfdbfe;
+
+  /* Purple palette (fieldset decorations) */
+  --color-purple-50: #2e1065;
+  --color-purple-100: #3b0764;
+  --color-purple-200: #581c87;
+  --color-purple-600: #c084fc;
+  --color-purple-700: #d8b4fe;
+  --color-purple-800: #e9d5ff;
+
+  /* Red palette (error states) */
+  --color-red-50: #450a0a;
+  --color-red-200: #991b1b;
+  --color-red-500: #f87171;
+  --color-red-700: #fca5a5;
 }
 
 body {
@@ -10,6 +69,25 @@ body {
   color: var(--foreground);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Dark mode: override white backgrounds to card color */
+.dark .bg-white {
+  background-color: var(--card);
+}
+
+/* Dark mode: form elements */
+.dark input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]),
+.dark textarea,
+.dark select {
+  background-color: var(--muted) !important;
+  color: var(--foreground);
+  border-color: var(--border) !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: var(--muted-foreground);
 }
 
 /* Smooth scrolling */

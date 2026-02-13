@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
+import { ThemeProvider } from "@/components/ui/theme-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -9,7 +10,7 @@ const geistSans = Geist({
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_BASE_URL || "https://sonar-b-eight.vercel.app"
+    process.env.NEXT_PUBLIC_BASE_URL || "https://baisoku-survey.plural-reality.com"
   ),
   title: "倍速アンケート - AIとの対話で深い意見を素早く集める",
   description:
@@ -22,8 +23,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja">
-      <body className={`${geistSans.variable} antialiased`}>{children}</body>
+    <html lang="ja" suppressHydrationWarning>
+      <body className={`${geistSans.variable} antialiased`}>
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }

@@ -229,7 +229,7 @@ export function Shugiin2026Welcome() {
           </p>
           <p className="text-xs text-gray-500 mt-2">
             <a
-              href="https://github.com/blu3mo/sonar-b"
+              href="https://github.com/plural-reality/baisoku-survey"
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 hover:underline"
@@ -238,7 +238,7 @@ export function Shugiin2026Welcome() {
             </a>
             ・
             <a
-              href="https://github.com/blu3mo/sonar-b/blob/main/src/lib/presets/2026-shugiin-election.json"
+              href="https://github.com/plural-reality/baisoku-survey/blob/main/src/lib/presets/2026-shugiin-election.json"
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 hover:underline"

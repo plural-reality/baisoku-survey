@@ -15,13 +15,28 @@ export function ReportPreview({
   version,
 }: ReportPreviewProps) {
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6 shadow-sm">
-      <div className="flex items-center justify-between gap-3 mb-3">
+    <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 p-5 md:p-6">
+      <div className="flex items-center gap-3 mb-4 pb-3 border-b border-emerald-200">
+        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-600 shadow-sm">
+          <svg
+            className="w-4.5 h-4.5 text-white"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+        </div>
         <div>
-          <h3 className="text-base font-semibold text-gray-900">
+          <h3 className="text-base font-bold text-emerald-800">
             診断レポート
           </h3>
-          <p className="text-xs text-gray-500">バージョン {version}</p>
+          <p className="text-xs text-emerald-600">バージョン {version}</p>
         </div>
       </div>
 
@@ -29,7 +44,7 @@ export function ReportPreview({
         <div className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-li:text-gray-700">
           <ReactMarkdown>{reportText}</ReactMarkdown>
         </div>
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-emerald-50 to-transparent" />
       </div>
 
       <div className="mt-4">

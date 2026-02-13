@@ -43,7 +43,7 @@ export async function callOpenRouter(
       "Content-Type": "application/json",
       Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
       "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
-      "X-Title": "Sonar Reflection System",
+      "X-Title": "Baisoku Survey",
     },
     body: JSON.stringify(payload),
   });

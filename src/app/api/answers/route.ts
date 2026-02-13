@@ -8,41 +8,83 @@ const saveAnswerSchema = z
   .object({
     sessionId: z.string().uuid(),
     questionId: z.string().uuid(),
-    selectedOption: z.number().int().min(0).max(6),
+    questionType: z.enum(['radio', 'checkbox', 'dropdown', 'text', 'textarea', 'scale']).optional().default('radio'),
+    selectedOption: z.number().int().min(0).max(6).optional().nullable(),
     freeText: z.string().trim().max(1000).optional().nullable(),
+    selectedOptions: z.array(z.number().int().min(0)).optional().nullable(),
+    answerText: z.string().trim().max(5000).optional().nullable(),
   })
   .superRefine((data, ctx) => {
-    if (data.selectedOption === FREE_TEXT_OPTION_INDEX && !data.freeText) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "自由記述の内容を入力してください",
-      });
+    const qt = data.questionType ?? 'radio';
+
+    if (qt === 'radio' || qt === 'dropdown' || qt === 'scale') {
+      if (data.selectedOption === null || data.selectedOption === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "選択肢を選んでください",
+        });
+      }
+      if (data.selectedOption === FREE_TEXT_OPTION_INDEX && !data.freeText) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "自由記述の内容を入力してください",
+        });
+      }
+    } else if (qt === 'checkbox') {
+      if (!data.selectedOptions || data.selectedOptions.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "少なくとも1つ選択してください",
+        });
+      }
+    } else if (qt === 'text' || qt === 'textarea') {
+      if (!data.answerText || !data.answerText.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "回答を入力してください",
+        });
+      }
     }
   });
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { sessionId, questionId, selectedOption, freeText } =
+    const { sessionId, questionId, questionType, selectedOption, freeText, selectedOptions, answerText } =
       saveAnswerSchema.parse(body);
 
     const supabase = await createClient();
-    const normalizedFreeText = selectedOption === FREE_TEXT_OPTION_INDEX ? freeText ?? null : null;
+    const qt = questionType ?? 'radio';
+
+    // Build upsert data based on question type
+    const upsertData: Record<string, unknown> = {
+      session_id: sessionId,
+      question_id: questionId,
+    };
+
+    if (qt === 'radio' || qt === 'dropdown' || qt === 'scale') {
+      upsertData.selected_option = selectedOption;
+      upsertData.free_text = selectedOption === FREE_TEXT_OPTION_INDEX ? freeText ?? null : null;
+      upsertData.selected_options = null;
+      upsertData.answer_text = null;
+    } else if (qt === 'checkbox') {
+      upsertData.selected_option = null;
+      upsertData.free_text = null;
+      upsertData.selected_options = selectedOptions;
+      upsertData.answer_text = null;
+    } else if (qt === 'text' || qt === 'textarea') {
+      upsertData.selected_option = null;
+      upsertData.free_text = null;
+      upsertData.selected_options = null;
+      upsertData.answer_text = answerText;
+    }
 
     // Upsert answer (allows updating)
     const { data, error } = await supabase
       .from("answers")
-      .upsert(
-        {
-          session_id: sessionId,
-          question_id: questionId,
-          selected_option: selectedOption,
-          free_text: normalizedFreeText,
-        },
-        {
-          onConflict: "session_id,question_id",
-        }
-      )
+      .upsert(upsertData, {
+        onConflict: "session_id,question_id",
+      })
       .select()
       .single();
 

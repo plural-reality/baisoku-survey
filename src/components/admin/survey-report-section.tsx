@@ -17,9 +17,14 @@ interface ResponseInfo {
   session_id: string;
   question_index: number;
   statement: string;
-  selected_option: number;
+  selected_option: number | null;
   options: string[];
   free_text: string | null;
+  source?: string;
+  question_type?: string;
+  scale_config?: { min: number; max: number; minLabel?: string; maxLabel?: string } | null;
+  selected_options?: number[] | null;
+  answer_text?: string | null;
 }
 
 interface SessionInfo {
@@ -76,6 +81,9 @@ export function SurveyReportSection({
         selected_option: r.selected_option,
         options: r.options,
         free_text: r.free_text,
+        answer_text: r.answer_text,
+        selected_options: r.selected_options,
+        question_type: r.question_type,
       })),
     };
   });

@@ -45,10 +45,10 @@ export async function POST(
 
     const preset = presetRows[0];
 
-    // Fetch full preset info (purpose, background_text, report_instructions, key_questions)
+    // Fetch full preset info
     const { data: presetFull } = await supabase
       .from("presets")
-      .select("purpose, background_text, report_instructions, key_questions")
+      .select("purpose, background_text, report_instructions, key_questions, fixed_questions, exploration_themes")
       .eq("id", preset.id)
       .single();
 
@@ -173,12 +173,18 @@ export async function POST(
     }
 
     // Build prompt and call LLM
-    const keyQuestions = Array.isArray(presetFull.key_questions) ? presetFull.key_questions as string[] : [];
+    const explorationThemes = Array.isArray(presetFull.exploration_themes) && (presetFull.exploration_themes as string[]).length > 0
+      ? presetFull.exploration_themes as string[]
+      : Array.isArray(presetFull.key_questions) ? presetFull.key_questions as string[] : [];
+    const fixedQuestions = Array.isArray(presetFull.fixed_questions)
+      ? presetFull.fixed_questions as Array<{ statement: string; detail: string }>
+      : [];
     const prompt = buildSurveyReportPrompt({
       purpose: presetFull.purpose,
       backgroundText: presetFull.background_text || "",
       reportInstructions: presetFull.report_instructions || undefined,
-      keyQuestions: keyQuestions.length > 0 ? keyQuestions : undefined,
+      explorationThemes: explorationThemes.length > 0 ? explorationThemes : undefined,
+      fixedQuestions: fixedQuestions.length > 0 ? fixedQuestions : undefined,
       customInstructions: customInstructions || undefined,
       participants,
     });

@@ -5,8 +5,35 @@ const OTHER_OPTION_INDEX = 6;
 function formatAnswerText(
   options: string[],
   selectedOption: number | null | undefined,
-  freeText?: string | null
+  freeText?: string | null,
+  questionType?: string,
+  selectedOptions?: number[] | null,
+  answerText?: string | null,
+  scaleConfig?: { min: number; max: number; minLabel?: string; maxLabel?: string } | null
 ): string {
+  const qt = questionType || 'radio';
+
+  // text/textarea: return the answer text
+  if (qt === 'text' || qt === 'textarea') {
+    return answerText?.trim() || "未回答";
+  }
+
+  // checkbox: join selected option labels
+  if (qt === 'checkbox') {
+    if (!selectedOptions || selectedOptions.length === 0) return "未回答";
+    return selectedOptions.map(i => options[i] ?? `選択肢${i}`).join(", ");
+  }
+
+  // scale: show numeric value with labels
+  if (qt === 'scale') {
+    if (selectedOption === null || selectedOption === undefined) return "未回答";
+    const label = scaleConfig
+      ? `${selectedOption}（${scaleConfig.minLabel || scaleConfig.min} 〜 ${scaleConfig.maxLabel || scaleConfig.max}）`
+      : String(selectedOption);
+    return label;
+  }
+
+  // radio/dropdown: existing logic
   if (selectedOption === null || selectedOption === undefined) {
     return "未回答";
   }
@@ -22,7 +49,13 @@ function formatAnswerText(
 export interface QuestionGenerationContext {
   purpose: string;
   backgroundText: string;
+  explorationThemes?: string[];
+  /** @deprecated Use explorationThemes instead */
   keyQuestions?: string[];
+  fixedQuestionsInBatch?: Array<{
+    index: number;
+    statement: string;
+  }>;
   previousQA: Array<{
     index: number;
     statement: string;
@@ -30,6 +63,10 @@ export interface QuestionGenerationContext {
     options: string[];
     selectedOption: number | null;
     freeText?: string | null;
+    questionType?: string;
+    selectedOptions?: number[] | null;
+    answerText?: string | null;
+    scaleConfig?: { min: number; max: number; minLabel?: string; maxLabel?: string } | null;
   }>;
   startIndex: number;
   endIndex: number;
@@ -42,24 +79,40 @@ export function buildQuestionGenerationPrompt(
   const qaHistory = ctx.previousQA
     .map((qa) => {
       const selectedText =
-        qa.selectedOption !== null
+        qa.selectedOption !== null || qa.selectedOptions || qa.answerText
           ? `回答: ${formatAnswerText(
             qa.options,
             qa.selectedOption,
-            qa.freeText
+            qa.freeText,
+            qa.questionType,
+            qa.selectedOptions,
+            qa.answerText,
+            qa.scaleConfig
           )}`
           : "未回答";
       return `Q${qa.index}: ${qa.statement}\n詳細: ${qa.detail}\n選択肢: ${qa.options.join(" / ")}\n${selectedText}`;
     })
     .join("\n\n");
 
-  const keyQuestionsSection =
-    ctx.keyQuestions && ctx.keyQuestions.length > 0
-      ? `## キークエスチョン（調査の軸となる問い）
-以下のキークエスチョンを軸として、多角的に深掘りするステートメントを生成してください。
-各キークエスチョンに対して偏りなくカバーするよう意識してください。
+  // Support both explorationThemes (new) and keyQuestions (legacy)
+  const themes = ctx.explorationThemes ?? ctx.keyQuestions;
+  const themesSection =
+    themes && themes.length > 0
+      ? `## 深掘りテーマ（調査の軸となるテーマ）
+以下のテーマを軸として、多角的に深掘りするステートメントを生成してください。
+各テーマに対して偏りなくカバーするよう意識してください。
 
-${ctx.keyQuestions.map((q, i) => `${i + 1}. ${q}`).join("\n")}
+${themes.map((q, i) => `${i + 1}. ${q}`).join("\n")}
+
+`
+      : "";
+
+  const fixedQuestionsSection =
+    ctx.fixedQuestionsInBatch && ctx.fixedQuestionsInBatch.length > 0
+      ? `## 既出の固定質問（重複回避）
+以下の質問はこのバッチに含まれる固定質問です。これらと内容が重複するステートメントは生成しないでください。
+
+${ctx.fixedQuestionsInBatch.map((q) => `- Q${q.index}: ${q.statement}`).join("\n")}
 
 `
       : "";
@@ -73,7 +126,7 @@ ${ctx.purpose}
 ## 背景情報
 ${ctx.backgroundText || "特になし"}
 
-${keyQuestionsSection}## これまでのステートメントと回答
+${themesSection}${fixedQuestionsSection}## これまでのステートメントと回答
 ${qaHistory || "まだ項目はありません（最初の5問を生成）"}
 
 ## 現在のフェーズと指針
@@ -147,8 +200,12 @@ export interface AnalysisGenerationContext {
     statement: string;
     detail: string;
     options: string[];
-    selectedOption: number;
+    selectedOption: number | null;
     freeText?: string | null;
+    questionType?: string;
+    selectedOptions?: number[] | null;
+    answerText?: string | null;
+    scaleConfig?: { min: number; max: number; minLabel?: string; maxLabel?: string } | null;
   }>;
   startIndex: number;
   endIndex: number;
@@ -161,7 +218,7 @@ export function buildAnalysisPrompt(ctx: AnalysisGenerationContext): string {
       return `Q${qa.index}: ${qa.statement}
 詳細: ${qa.detail}
 選択肢: ${qa.options.join(" / ")}
-回答: ${formatAnswerText(qa.options, qa.selectedOption, qa.freeText)}`;
+回答: ${formatAnswerText(qa.options, qa.selectedOption, qa.freeText, qa.questionType, qa.selectedOptions, qa.answerText, qa.scaleConfig)}`;
     })
     .join("\n\n");
 
@@ -197,14 +254,22 @@ export interface ReportGenerationContext {
   purpose: string;
   backgroundText: string;
   reportInstructions?: string;
+  explorationThemes?: string[];
+  fixedQuestions?: Array<{ statement: string; detail: string }>;
+  /** @deprecated Use explorationThemes instead */
   keyQuestions?: string[];
   allQA: Array<{
     index: number;
     statement: string;
     detail: string;
     options: string[];
-    selectedOption: number;
+    selectedOption: number | null;
     freeText?: string | null;
+    source?: "ai" | "fixed";
+    questionType?: string;
+    selectedOptions?: number[] | null;
+    answerText?: string | null;
+    scaleConfig?: { min: number; max: number; minLabel?: string; maxLabel?: string } | null;
   }>;
   allAnalyses: string[];
   version: number;
@@ -215,7 +280,7 @@ export function buildReportPrompt(ctx: ReportGenerationContext): string {
     .map((qa) => {
       return `[Q${qa.index}] ${qa.statement}
 詳細: ${qa.detail}
-選択: ${formatAnswerText(qa.options, qa.selectedOption, qa.freeText)}`;
+選択: ${formatAnswerText(qa.options, qa.selectedOption, qa.freeText, qa.questionType, qa.selectedOptions, qa.answerText, qa.scaleConfig)}`;
     })
     .join("\n\n");
 
@@ -230,21 +295,45 @@ ${ctx.reportInstructions}
 `
     : "";
 
-  const keyQuestionsSection =
-    ctx.keyQuestions && ctx.keyQuestions.length > 0
-      ? `## 調査項目（具体的に聞きたかった項目）
-${ctx.keyQuestions.map((q, i) => `${i + 1}. ${q}`).join("\n")}
+  // Fixed questions section
+  const fixedQuestionsInQA = ctx.allQA.filter((qa) => qa.source === "fixed");
+  const fixedQuestionsSection =
+    fixedQuestionsInQA.length > 0
+      ? `## 固定質問（作成者が設定した必須質問）
+以下の質問は作成者が事前に定義した固定質問です。レポートでは専用セクションで回答を分析してください。
+
+${fixedQuestionsInQA.map((qa) => `- [Q${qa.index}] ${qa.statement}`).join("\n")}
 
 `
       : "";
 
-  const keyQuestionsReportStructure =
-    ctx.keyQuestions && ctx.keyQuestions.length > 0
+  // Exploration themes section (with keyQuestions fallback)
+  const themes = ctx.explorationThemes ?? ctx.keyQuestions;
+  const themesSection =
+    themes && themes.length > 0
+      ? `## 深掘りテーマ（調査の軸となるテーマ）
+${themes.map((q, i) => `${i + 1}. ${q}`).join("\n")}
+
+`
+      : "";
+
+  const fixedQuestionsReportStructure =
+    fixedQuestionsInQA.length > 0
       ? `
-6. **調査項目ごとの結論**
-   - 以下の各項目について、回答データから読み取れる結論を述べてください
-${ctx.keyQuestions.map((q, i) => `   - 項目${i + 1}: ${q}`).join("\n")}
-   - 各項目につき200-400文字で、回答の根拠（質問番号の引用）とともに結論を記述する
+6. **固定質問への回答**
+   - 作成者が設定した固定質問に対する回答を分析してください
+${fixedQuestionsInQA.map((qa) => `   - [Q${qa.index}] ${qa.statement}`).join("\n")}
+   - 各質問につき150-300文字で、回答内容とそこから読み取れる傾向を記述する
+`
+      : "";
+
+  const themesReportStructure =
+    themes && themes.length > 0
+      ? `
+${fixedQuestionsInQA.length > 0 ? "7" : "6"}. **テーマごとの結論**
+   - 以下の各テーマについて、回答データから読み取れる結論を述べてください
+${themes.map((q, i) => `   - テーマ${i + 1}: ${q}`).join("\n")}
+   - 各テーマにつき200-400文字で、回答の根拠（質問番号の引用）とともに結論を記述する
    - 明確な傾向がある場合はそれを示し、判断が難しい場合はその旨を正直に述べる
 `
       : "";
@@ -258,7 +347,7 @@ ${ctx.purpose}
 ## 背景情報
 ${ctx.backgroundText || "特になし"}
 
-${keyQuestionsSection}${reportInstructionsSection}## 中間分析
+${fixedQuestionsSection}${themesSection}${reportInstructionsSection}## 中間分析
 ${analysesText}
 
 ## 全質問と回答
@@ -294,7 +383,7 @@ ${qaFull}
 5. **まとめ**（300-500文字）
    - 励ましと、次の一歩へのエール
    - ユーザーの強みを再確認する一文
-${keyQuestionsReportStructure}
+${fixedQuestionsReportStructure}${themesReportStructure}
 ### 引用形式
 - 質問番号は [12] のように角括弧で囲む
 - 複数引用は [12][34][56] のように連続させる
@@ -313,8 +402,12 @@ export interface SurveyReportParticipant {
     statement: string;
     detail: string;
     options: string[];
-    selectedOption: number;
+    selectedOption: number | null;
     freeText?: string | null;
+    questionType?: string;
+    selectedOptions?: number[] | null;
+    answerText?: string | null;
+    scaleConfig?: { min: number; max: number; minLabel?: string; maxLabel?: string } | null;
   }>;
   personalReport: string | null; // latest report_text, or null
 }
@@ -323,6 +416,9 @@ export interface SurveyReportGenerationContext {
   purpose: string;
   backgroundText: string;
   reportInstructions?: string;
+  explorationThemes?: string[];
+  fixedQuestions?: Array<{ statement: string; detail: string }>;
+  /** @deprecated Use explorationThemes instead */
   keyQuestions?: string[];
   customInstructions?: string;
   participants: SurveyReportParticipant[];
@@ -336,12 +432,16 @@ export function buildSurveyReportPrompt(
     .map((p) => {
       const qaBlock = p.qa
         .map((qa) => {
-          const answerText = formatAnswerText(
+          const ansText = formatAnswerText(
             qa.options,
             qa.selectedOption,
-            qa.freeText
+            qa.freeText,
+            qa.questionType,
+            qa.selectedOptions,
+            qa.answerText,
+            qa.scaleConfig
           );
-          return `[U${p.userNumber}-Q${qa.index}] ${qa.statement}\n詳細: ${qa.detail}\n選択: ${answerText}`;
+          return `[U${p.userNumber}-Q${qa.index}] ${qa.statement}\n詳細: ${qa.detail}\n選択: ${ansText}`;
         })
         .join("\n\n");
 
@@ -362,10 +462,21 @@ ${reportBlock}`;
     ? `## アンケート設計者からのレポート指示\n${ctx.reportInstructions}\n\n`
     : "";
 
-  const keyQuestionsSection =
-    ctx.keyQuestions && ctx.keyQuestions.length > 0
-      ? `## 調査項目（具体的に聞きたかった項目）
-${ctx.keyQuestions.map((q, i) => `${i + 1}. ${q}`).join("\n")}
+  // Fixed questions section
+  const surveyFixedQuestionsSection =
+    ctx.fixedQuestions && ctx.fixedQuestions.length > 0
+      ? `## 固定質問（作成者が設定した必須質問）
+${ctx.fixedQuestions.map((q, i) => `${i + 1}. ${q.statement}`).join("\n")}
+
+`
+      : "";
+
+  // Exploration themes section (with keyQuestions fallback)
+  const surveyThemes = ctx.explorationThemes ?? ctx.keyQuestions;
+  const surveyThemesSection =
+    surveyThemes && surveyThemes.length > 0
+      ? `## 深掘りテーマ（調査の軸となるテーマ）
+${surveyThemes.map((q, i) => `${i + 1}. ${q}`).join("\n")}
 
 `
       : "";
@@ -374,13 +485,24 @@ ${ctx.keyQuestions.map((q, i) => `${i + 1}. ${q}`).join("\n")}
     ? `## レポート生成時の追加指示\n${ctx.customInstructions}\n\n`
     : "";
 
-  const keyQuestionsReportStructure =
-    ctx.keyQuestions && ctx.keyQuestions.length > 0
+  const surveyFixedQuestionsReportStructure =
+    ctx.fixedQuestions && ctx.fixedQuestions.length > 0
       ? `
-7. **調査項目ごとの結論**
-   - 以下の各項目について、全参加者の回答データから読み取れる結論を述べてください
-${ctx.keyQuestions.map((q, i) => `   - 項目${i + 1}: ${q}`).join("\n")}
-   - 各項目につき300-500文字で、参加者間の傾向・分布を含めた結論を記述する
+7. **固定質問への回答分析**
+   - 作成者が設定した固定質問に対する全参加者の回答を分析してください
+${ctx.fixedQuestions.map((q, i) => `   - 質問${i + 1}: ${q.statement}`).join("\n")}
+   - 各質問につき300-500文字で、参加者間の傾向・分布を記述する
+   - 回答の引用（[U1-Q12] 形式）で根拠を示す
+`
+      : "";
+
+  const surveyThemesReportStructure =
+    surveyThemes && surveyThemes.length > 0
+      ? `
+${ctx.fixedQuestions && ctx.fixedQuestions.length > 0 ? "8" : "7"}. **テーマごとの結論**
+   - 以下の各テーマについて、全参加者の回答データから読み取れる結論を述べてください
+${surveyThemes.map((q, i) => `   - テーマ${i + 1}: ${q}`).join("\n")}
+   - 各テーマにつき300-500文字で、参加者間の傾向・分布を含めた結論を記述する
    - 回答の引用（[U1-Q12] 形式）で根拠を示す
    - 合意が得られた点と意見が分かれた点を区別して述べる
 `
@@ -395,7 +517,7 @@ ${ctx.purpose}
 ## 背景情報
 ${ctx.backgroundText || "特になし"}
 
-${keyQuestionsSection}${reportInstructionsSection}${customInstructionsSection}## 参加者データ（全${ctx.participants.length}名）
+${surveyFixedQuestionsSection}${surveyThemesSection}${reportInstructionsSection}${customInstructionsSection}## 参加者データ（全${ctx.participants.length}名）
 
 ${participantBlocks}
 
@@ -433,7 +555,7 @@ ${participantBlocks}
 6. **まとめと示唆**（300-500文字）
    - 全体として何が言えるか
    - このデータから得られる知見や次のアクションへの示唆
-${keyQuestionsReportStructure}
+${surveyFixedQuestionsReportStructure}${surveyThemesReportStructure}
 ### 引用形式
 - 特定の参加者の特定の質問への回答を引用するときは [U1-Q12] のように参加者番号と質問番号を角括弧で囲む
 - 複数引用は [U1-Q12][U3-Q12][U5-Q12] のように連続させる

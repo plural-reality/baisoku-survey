@@ -16,7 +16,9 @@ interface QuestionWithAnswer {
   statement: string;
   detail: string | null;
   options: string[];
-  answers?: Array<{ selected_option: number; free_text: string | null }>;
+  question_type?: string;
+  scale_config?: { min: number; max: number; minLabel?: string; maxLabel?: string } | null;
+  answers?: Array<{ selected_option: number | null; free_text: string | null; selected_options: number[] | null; answer_text: string | null }>;
 }
 
 interface SessionData {
@@ -74,11 +76,21 @@ export async function POST(request: NextRequest) {
       statement: q.statement,
       detail: q.detail || "",
       options: q.options as string[],
-      selectedOption: q.answers?.[0]?.selected_option,
+      selectedOption: q.answers?.[0]?.selected_option ?? null,
       freeText: q.answers?.[0]?.free_text ?? null,
+      questionType: q.question_type || "radio",
+      selectedOptions: (q.answers?.[0]?.selected_options as number[] | null) ?? null,
+      answerText: q.answers?.[0]?.answer_text ?? null,
+      scaleConfig: q.scale_config ?? null,
     }));
 
-    if (batchQA.some((q) => q.selectedOption === undefined)) {
+    const hasUnanswered = batchQA.some((q) => {
+      const qt = q.questionType || 'radio';
+      if (qt === 'text' || qt === 'textarea') return !q.answerText;
+      if (qt === 'checkbox') return !q.selectedOptions || q.selectedOptions.length === 0;
+      return q.selectedOption === null || q.selectedOption === undefined;
+    });
+    if (hasUnanswered) {
       return NextResponse.json(
         { error: "すべての質問に回答してください" },
         { status: 400 }

@@ -7,9 +7,12 @@ import { UserQuestionCitation } from "../report/user-question-citation";
 interface ParticipantQA {
   question_index: number;
   statement: string;
-  selected_option: number;
+  selected_option: number | null;
   options: string[];
   free_text: string | null;
+  answer_text?: string | null;
+  selected_options?: number[] | null;
+  question_type?: string;
 }
 
 interface ParticipantData {
@@ -25,9 +28,19 @@ interface SurveyReportViewProps {
 
 function getAnswerLabel(
   options: string[],
-  selectedOption: number,
-  freeText: string | null
+  selectedOption: number | null,
+  freeText: string | null,
+  answerText?: string | null,
+  selectedOptions?: number[] | null,
+  questionType?: string,
 ): string | null {
+  if (questionType === "text" || questionType === "textarea") {
+    return answerText || freeText || null;
+  }
+  if (questionType === "checkbox" && selectedOptions) {
+    return selectedOptions.map((i) => options[i] || `選択肢${i}`).join(", ") || null;
+  }
+  if (selectedOption === null) return answerText || null;
   if (selectedOption === 6) {
     const trimmed = freeText?.trim();
     return trimmed ? `その他（自由記述）: ${trimmed}` : "その他（自由記述）";
@@ -60,7 +73,10 @@ export function SurveyReportView({
         selectedAnswer: getAnswerLabel(
           qa.options,
           qa.selected_option,
-          qa.free_text
+          qa.free_text,
+          qa.answer_text,
+          qa.selected_options,
+          qa.question_type,
         ),
       });
     }

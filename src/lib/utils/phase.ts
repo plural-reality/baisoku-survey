@@ -8,7 +8,7 @@ export interface PhaseProfile {
   ranges: PhaseRange[];
 }
 
-export const DEFAULT_REPORT_TARGET = 25;
+export const DEFAULT_REPORT_TARGET = 10;
 
 /**
  * Phase cycle for batches after the initial exploration phase.

@@ -43,7 +43,7 @@ export function FormHistory() {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors mx-auto"
+        className="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900 transition-colors mx-auto"
       >
         <svg
           className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`}
@@ -75,7 +75,7 @@ export function FormHistory() {
                 <p className="text-gray-900 font-medium text-sm line-clamp-1">
                   {preset.title}
                 </p>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-gray-500 mt-1">
                   {new Date(preset.createdAt).toLocaleDateString("ja-JP", {
                     year: "numeric",
                     month: "long",
@@ -91,7 +91,7 @@ export function FormHistory() {
                   </Link>
                   <Link
                     href={adminUrl}
-                    className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                    className="text-xs text-gray-600 hover:text-gray-800 transition-colors"
                   >
                     管理画面
                   </Link>

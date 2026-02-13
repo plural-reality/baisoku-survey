@@ -1,6 +1,12 @@
 import shugiin2026 from "./2026-shugiin-election.json";
 import { createClient } from "@/lib/supabase/server";
 
+export interface FixedQuestion {
+  statement: string;
+  detail: string;
+  options: string[];
+}
+
 export interface SessionPreset {
   id?: string;
   title: string;
@@ -8,6 +14,8 @@ export interface SessionPreset {
   backgroundText?: string;
   reportInstructions?: string;
   keyQuestions?: string[];
+  fixedQuestions?: FixedQuestion[];
+  explorationThemes?: string[];
   reportTarget?: number;
 }
 
@@ -43,13 +51,18 @@ export async function getPresetFromDB(slug: string): Promise<SessionPreset | nul
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("presets")
-      .select("id, title, purpose, background_text, report_instructions, key_questions, report_target")
+      .select("id, title, purpose, background_text, report_instructions, key_questions, fixed_questions, exploration_themes, report_target")
       .eq("slug", slug)
       .single();
 
     if (error || !data) return null;
 
     const keyQuestions = Array.isArray(data.key_questions) ? data.key_questions as string[] : [];
+    const fixedQuestions = Array.isArray(data.fixed_questions) ? data.fixed_questions as FixedQuestion[] : [];
+    // Fallback: if exploration_themes is empty but key_questions exists, use key_questions
+    const explorationThemes = Array.isArray(data.exploration_themes) && (data.exploration_themes as string[]).length > 0
+      ? data.exploration_themes as string[]
+      : keyQuestions;
 
     return {
       id: data.id,
@@ -58,6 +71,8 @@ export async function getPresetFromDB(slug: string): Promise<SessionPreset | nul
       backgroundText: data.background_text ?? undefined,
       reportInstructions: data.report_instructions ?? undefined,
       keyQuestions: keyQuestions.length > 0 ? keyQuestions : undefined,
+      fixedQuestions: fixedQuestions.length > 0 ? fixedQuestions : undefined,
+      explorationThemes: explorationThemes.length > 0 ? explorationThemes : undefined,
       reportTarget: data.report_target ?? undefined,
     };
   } catch {

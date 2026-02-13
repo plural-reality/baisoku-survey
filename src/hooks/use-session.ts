@@ -6,6 +6,8 @@ import type { Question, Analysis, Session, Report } from "@/types";
 interface QuestionWithAnswer extends Question {
   selectedOption: number | null;
   freeText: string | null;
+  selectedOptions?: number[] | null;
+  answerText?: string | null;
 }
 
 interface UseSessionOptions {
@@ -41,6 +43,8 @@ export function useSession(sessionId: string, options: UseSessionOptions = {}) {
             ...q,
             selectedOption: q.selectedOption ?? null,
             freeText: q.freeText ?? null,
+            selectedOptions: q.selectedOptions ?? null,
+            answerText: q.answerText ?? null,
           }))
         );
         setAnalyses(data.analyses);
@@ -104,7 +108,16 @@ export function useSession(sessionId: string, options: UseSessionOptions = {}) {
   };
 
   const submitAnswer = useCallback(
-    async (questionId: string, selectedOption: number, freeText?: string | null) => {
+    async (
+      questionId: string,
+      selectedOption: number | null,
+      freeText?: string | null,
+      opts?: {
+        questionType?: string;
+        selectedOptions?: number[] | null;
+        answerText?: string | null;
+      }
+    ) => {
       try {
         const response = await fetch("/api/answers", {
           method: "POST",
@@ -112,8 +125,11 @@ export function useSession(sessionId: string, options: UseSessionOptions = {}) {
           body: JSON.stringify({
             sessionId,
             questionId,
-            selectedOption,
+            questionType: opts?.questionType ?? "radio",
+            selectedOption: selectedOption ?? undefined,
             freeText: freeText ?? null,
+            selectedOptions: opts?.selectedOptions ?? null,
+            answerText: opts?.answerText ?? null,
           }),
         });
 
@@ -122,7 +138,13 @@ export function useSession(sessionId: string, options: UseSessionOptions = {}) {
         setQuestions((prev) =>
           prev.map((q) =>
             q.id === questionId
-              ? { ...q, selectedOption, freeText: freeText ?? null }
+              ? {
+                  ...q,
+                  selectedOption: selectedOption ?? null,
+                  freeText: freeText ?? null,
+                  selectedOptions: opts?.selectedOptions ?? null,
+                  answerText: opts?.answerText ?? null,
+                }
               : q
           )
         );

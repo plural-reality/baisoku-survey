@@ -19,11 +19,21 @@ interface QuestionWithAnswer {
   answers?: Array<{ selected_option: number; free_text: string | null }>;
 }
 
+interface FixedQuestionDef {
+  statement: string;
+  detail: string;
+  options: string[];
+  question_type?: string;
+  scale_config?: { min: number; max: number; minLabel?: string; maxLabel?: string } | null;
+}
+
 interface SessionData {
   id: string;
   purpose: string;
   background_text: string | null;
   key_questions: string[] | null;
+  fixed_questions: FixedQuestionDef[] | null;
+  exploration_themes: string[] | null;
   phase_profile: {
     ranges: Array<{
       start: number;
@@ -98,57 +108,19 @@ export async function POST(request: NextRequest) {
 
     const phase = getPhaseForQuestionIndex(startIndex, session.phase_profile);
 
-    // Generate questions via OpenRouter
-    const keyQuestions = Array.isArray(session.key_questions) ? session.key_questions : [];
-    const prompt = buildQuestionGenerationPrompt({
-      purpose: session.purpose,
-      backgroundText: session.background_text || "",
-      keyQuestions: keyQuestions.length > 0 ? keyQuestions : undefined,
-      previousQA,
-      startIndex,
-      endIndex,
-      phase,
-    });
+    // Resolve exploration themes (new field with key_questions fallback)
+    const explorationThemes = Array.isArray(session.exploration_themes) && session.exploration_themes.length > 0
+      ? session.exploration_themes as string[]
+      : Array.isArray(session.key_questions) ? session.key_questions as string[] : [];
 
-    const response = await callOpenRouter([{ role: "user", content: prompt }], {
-      temperature: 0.8,
-    });
-
-    // Parse JSON response
-    let generatedQuestions: {
-      questions: Array<{
-        statement: string;
-        detail: string;
-        options: string[];
-      }>;
-    };
-    try {
-      // Extract JSON from response (handle potential markdown code blocks)
-      const jsonPayload = extractJsonPayload(response);
-      if (!jsonPayload) throw new Error("No JSON found");
-      try {
-        generatedQuestions = JSON.parse(jsonPayload);
-      } catch {
-        generatedQuestions = JSON.parse(normalizeJsonPayload(jsonPayload));
+    // Determine which fixed questions fall in this batch range
+    const fixedQuestions = Array.isArray(session.fixed_questions) ? session.fixed_questions as FixedQuestionDef[] : [];
+    const fixedInBatch: Array<{ index: number; def: FixedQuestionDef }> = [];
+    for (let i = 0; i < fixedQuestions.length; i++) {
+      const fixedIndex = i + 1; // fixed questions are placed starting from Q1
+      if (fixedIndex >= startIndex && fixedIndex <= endIndex) {
+        fixedInBatch.push({ index: fixedIndex, def: fixedQuestions[i] });
       }
-    } catch (parseError) {
-      console.error("JSON parse error:", parseError, response);
-      return NextResponse.json(
-        { error: "質問の生成に失敗しました" },
-        { status: 500 }
-      );
-    }
-
-    if (
-      !generatedQuestions ||
-      !Array.isArray(generatedQuestions.questions) ||
-      generatedQuestions.questions.length === 0
-    ) {
-      console.error("Invalid questions payload:", response);
-      return NextResponse.json(
-        { error: "質問の生成に失敗しました" },
-        { status: 500 }
-      );
     }
 
     const existingIndexSet = new Set(
@@ -157,38 +129,143 @@ export async function POST(request: NextRequest) {
       )
     );
 
-    // Insert questions into database
-    const questionsToInsert = generatedQuestions.questions
-      .map((q, i) => ({
+    // Insert fixed questions first
+    const fixedToInsert = fixedInBatch
+      .filter((f) => !existingIndexSet.has(f.index))
+      .map((f) => ({
         session_id: sessionId,
-        question_index: startIndex + i,
-        statement: q.statement,
-        detail: q.detail,
-        options: q.options,
+        question_index: f.index,
+        statement: f.def.statement,
+        detail: f.def.detail,
+        options: f.def.options,
         phase,
-      }))
-      .filter((q) => !existingIndexSet.has(q.question_index));
+        source: "fixed" as const,
+        question_type: f.def.question_type || "radio",
+        scale_config: f.def.scale_config || null,
+      }));
 
     let insertedQuestions: QuestionWithAnswer[] = [];
 
-    if (questionsToInsert.length > 0) {
-      const { data, error: insertError } = await supabase
+    if (fixedToInsert.length > 0) {
+      const { data: fixedData, error: fixedInsertError } = await supabase
         .from("questions")
-        .upsert(questionsToInsert, {
+        .upsert(fixedToInsert, {
           onConflict: "session_id,question_index",
           ignoreDuplicates: true,
         })
         .select();
 
-      if (insertError) {
-        console.error("Question insert error:", insertError);
+      if (fixedInsertError) {
+        console.error("Fixed question insert error:", fixedInsertError);
         return NextResponse.json(
-          { error: "質問の保存に失敗しました" },
+          { error: "固定質問の保存に失敗しました" },
           { status: 500 }
         );
       }
 
-      insertedQuestions = (data as QuestionWithAnswer[]) || [];
+      insertedQuestions = (fixedData as QuestionWithAnswer[]) || [];
+      // Mark these indices as existing
+      for (const fq of fixedToInsert) {
+        existingIndexSet.add(fq.question_index);
+      }
+    }
+
+    // Calculate how many AI questions we still need
+    const fixedIndicesInBatch = new Set(fixedInBatch.map((f) => f.index));
+    const aiSlotsNeeded: number[] = [];
+    for (let i = startIndex; i <= endIndex; i++) {
+      if (!fixedIndicesInBatch.has(i) && !existingIndexSet.has(i)) {
+        aiSlotsNeeded.push(i);
+      }
+    }
+
+    if (aiSlotsNeeded.length > 0) {
+      // Generate AI questions for remaining slots
+      const prompt = buildQuestionGenerationPrompt({
+        purpose: session.purpose,
+        backgroundText: session.background_text || "",
+        explorationThemes: explorationThemes.length > 0 ? explorationThemes : undefined,
+        fixedQuestionsInBatch: fixedInBatch.length > 0
+          ? fixedInBatch.map((f) => ({ index: f.index, statement: f.def.statement }))
+          : undefined,
+        previousQA,
+        startIndex: aiSlotsNeeded[0],
+        endIndex: aiSlotsNeeded[aiSlotsNeeded.length - 1],
+        phase,
+      });
+
+      const response = await callOpenRouter([{ role: "user", content: prompt }], {
+        temperature: 0.8,
+      });
+
+      // Parse JSON response
+      let generatedQuestions: {
+        questions: Array<{
+          statement: string;
+          detail: string;
+          options: string[];
+        }>;
+      };
+      try {
+        const jsonPayload = extractJsonPayload(response);
+        if (!jsonPayload) throw new Error("No JSON found");
+        try {
+          generatedQuestions = JSON.parse(jsonPayload);
+        } catch {
+          generatedQuestions = JSON.parse(normalizeJsonPayload(jsonPayload));
+        }
+      } catch (parseError) {
+        console.error("JSON parse error:", parseError, response);
+        return NextResponse.json(
+          { error: "質問の生成に失敗しました" },
+          { status: 500 }
+        );
+      }
+
+      if (
+        !generatedQuestions ||
+        !Array.isArray(generatedQuestions.questions) ||
+        generatedQuestions.questions.length === 0
+      ) {
+        console.error("Invalid questions payload:", response);
+        return NextResponse.json(
+          { error: "質問の生成に失敗しました" },
+          { status: 500 }
+        );
+      }
+
+      // Map generated questions to available AI slots
+      const aiQuestionsToInsert = generatedQuestions.questions
+        .slice(0, aiSlotsNeeded.length)
+        .map((q, i) => ({
+          session_id: sessionId,
+          question_index: aiSlotsNeeded[i],
+          statement: q.statement,
+          detail: q.detail,
+          options: q.options,
+          phase,
+          source: "ai" as const,
+        }));
+
+      if (aiQuestionsToInsert.length > 0) {
+        const { data, error: insertError } = await supabase
+          .from("questions")
+          .upsert(aiQuestionsToInsert, {
+            onConflict: "session_id,question_index",
+            ignoreDuplicates: true,
+          })
+          .select();
+
+        if (insertError) {
+          console.error("Question insert error:", insertError);
+          return NextResponse.json(
+            { error: "質問の保存に失敗しました" },
+            { status: 500 }
+          );
+        }
+
+        insertedQuestions = [...insertedQuestions, ...((data as QuestionWithAnswer[]) || [])];
+      }
     }
 
     // Update session's current question index

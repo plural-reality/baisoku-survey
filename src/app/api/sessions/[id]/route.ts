@@ -57,8 +57,10 @@ export async function GET(
       (answers || []).map((a) => [
         a.question_id,
         {
-          selectedOption: a.selected_option,
+          selectedOption: a.selected_option ?? null,
           freeText: a.free_text ?? null,
+          selectedOptions: a.selected_options ?? null,
+          answerText: a.answer_text ?? null,
         },
       ])
     );
@@ -70,6 +72,8 @@ export async function GET(
         ...q,
         selectedOption: answer?.selectedOption ?? null,
         freeText: answer?.freeText ?? null,
+        selectedOptions: answer?.selectedOptions ?? null,
+        answerText: answer?.answerText ?? null,
       };
     });
 

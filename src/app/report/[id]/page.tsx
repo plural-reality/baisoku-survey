@@ -1,7 +1,6 @@
 import { ReportView } from "@/components/report/report-view";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 
 interface ReportPageProps {
   params: Promise<{ id: string }>;
@@ -53,14 +52,6 @@ export default async function ReportPage({ params }: ReportPageProps) {
   return (
     <main className="min-h-screen bg-white">
       <div className="px-4 py-8 md:py-16">
-        <div className="max-w-3xl mx-auto mb-6">
-          <Link
-            href="/"
-            className="text-sm text-gray-500 hover:text-gray-700 inline-block"
-          >
-            &larr; ホームに戻る
-          </Link>
-        </div>
         <ReportView
           sessionId={id}
           reportText={report.report_text}

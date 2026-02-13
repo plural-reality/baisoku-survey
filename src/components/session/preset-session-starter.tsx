@@ -29,6 +29,8 @@ export function PresetSessionStarter({ preset }: PresetSessionStarterProps) {
             title: preset.title,
             reportInstructions: preset.reportInstructions,
             keyQuestions: preset.keyQuestions,
+            fixedQuestions: preset.fixedQuestions,
+            explorationThemes: preset.explorationThemes,
             presetId: preset.id,
             reportTarget: preset.reportTarget,
           }),
