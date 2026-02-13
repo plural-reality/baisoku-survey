@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant dark (&:where(.dark, .dark *):not(:where(.light, .light *)));
 
 :root {
   --background: #f9fafb;
@@ -120,12 +120,9 @@ body {
     "Helvetica Neue", Arial, sans-serif;
 }
 
-/* Dark mode: override white backgrounds to card color (skip .light containers) */
+/* Dark mode: override white backgrounds to card color */
 .dark .bg-white:not(.light .bg-white) {
   background-color: var(--card);
-}
-.dark .light .bg-white {
-  background-color: white;
 }
 
 /* Dark mode: form elements */
@@ -231,6 +228,31 @@ html {
   .prose li {
     margin-bottom: 0.5rem;
     font-size: 1rem;
+  }
+}
+
+/* ─── LP: Scroll reveal animations ─── */
+@keyframes lp-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes lp-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }
 
