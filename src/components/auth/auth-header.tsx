@@ -2,7 +2,13 @@
 
 import { useState, useRef, useEffect } from "react";
 
-export function AuthHeader({ email }: { email: string }) {
+export function AuthHeader({
+  email,
+  signoutAction = "/auth/signout",
+}: {
+  email: string;
+  signoutAction?: string;
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -43,7 +49,7 @@ export function AuthHeader({ email }: { email: string }) {
           <div className="px-3 py-2 text-xs text-[var(--muted-foreground)] border-b border-[var(--border)] truncate">
             {email}
           </div>
-          <form action="/auth/signout" method="post">
+          <form action={signoutAction} method="post">
             <button
               type="submit"
               className="w-full text-left px-3 py-2 text-sm text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors"

@@ -240,6 +240,41 @@ export interface Database {
           updated_at?: string;
         };
       };
+      invite_links: {
+        Row: {
+          id: string;
+          token: string;
+          label: string;
+          created_by: string | null;
+          expires_at: string | null;
+          max_uses: number | null;
+          use_count: number;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          token?: string;
+          label?: string;
+          created_by?: string | null;
+          expires_at?: string | null;
+          max_uses?: number | null;
+          use_count?: number;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          token?: string;
+          label?: string;
+          created_by?: string | null;
+          expires_at?: string | null;
+          max_uses?: number | null;
+          use_count?: number;
+          is_active?: boolean;
+          created_at?: string;
+        };
+      };
       form_questions: {
         Row: {
           id: string;

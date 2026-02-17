@@ -33,13 +33,17 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Protected routes: require login
+  // Check for guest token cookie
+  const guestToken = request.cookies.get("guest_token")?.value;
+  const isGuest = !user && !!guestToken;
+
+  // Protected routes: require login or guest token
   const { pathname } = request.nextUrl;
   const isProtected =
     pathname === "/create" ||
     pathname.startsWith("/manage");
 
-  if (isProtected && !user) {
+  if (isProtected && !user && !isGuest) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("next", pathname);

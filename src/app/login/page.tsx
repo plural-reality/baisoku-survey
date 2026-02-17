@@ -8,6 +8,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 function LoginForm() {
   const searchParams = useSearchParams();
   const next = searchParams.get("next") || "/";
+  const inviteError = searchParams.get("error") === "invalid_invite";
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
@@ -60,6 +61,12 @@ function LoginForm() {
       <h1 className="text-xl font-bold text-[var(--foreground)] mb-6 text-center">
         ログイン
       </h1>
+
+      {inviteError && (
+        <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-300">
+          招待リンクが無効または期限切れです。ログインしてご利用ください。
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
