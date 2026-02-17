@@ -11,7 +11,7 @@ export default async function CreatePage() {
   return (
     <main className="min-h-screen bg-[var(--background)]">
       <div className="max-w-3xl mx-auto px-4 py-8 md:py-12">
-        <AppHeader showLogo userEmail={user?.email ?? null} />
+        <AppHeader showLogo userEmail={user?.email ?? null} isAnonymous={user?.is_anonymous ?? false} />
 
         <div className="bg-[var(--card)] rounded-xl shadow-sm border border-[var(--border)] p-6">
           <PresetCreator />

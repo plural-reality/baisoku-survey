@@ -8,6 +8,7 @@ interface AppHeaderProps {
   backHref?: string;
   showLogo?: boolean;
   userEmail?: string | null;
+  isAnonymous?: boolean;
 }
 
 export function AppHeader({
@@ -15,6 +16,7 @@ export function AppHeader({
   backHref,
   showLogo = false,
   userEmail,
+  isAnonymous = false,
 }: AppHeaderProps) {
   return (
     <header className="flex items-center justify-between mb-4">
@@ -48,6 +50,8 @@ export function AppHeader({
         <ThemeToggle />
         {userEmail ? (
           <AuthHeader email={userEmail} />
+        ) : isAnonymous ? (
+          <AuthHeader email="ゲスト" />
         ) : (
           <a
             href="/login"

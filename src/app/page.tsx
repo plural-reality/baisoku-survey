@@ -52,7 +52,7 @@ export default async function HomePage() {
   return (
     <main className="min-h-screen bg-[var(--background)]">
       <div className="max-w-3xl mx-auto px-4 py-8 md:py-12">
-        <AppHeader showLogo userEmail={user.email ?? null} />
+        <AppHeader showLogo userEmail={user.email ?? null} isAnonymous={user.is_anonymous ?? false} />
 
         {/* Create new — Google Forms style */}
         <div className="mb-8">
