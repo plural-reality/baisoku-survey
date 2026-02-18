@@ -79,12 +79,37 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<supabase start の Publishable key>
 ## Commands
 
 ```bash
-npm run dev      # 開発サーバー起動 (http://localhost:3939)
-npm run build    # プロダクションビルド
-npm run lint     # ESLint実行
+npm run dev        # 開発サーバー起動 (http://localhost:3939)
+npm run build      # プロダクションビルド
+npm run lint       # ESLint実行
+npm test           # テスト実行 (vitest run)
+npm run test:watch # テスト監視モード (vitest)
 ```
 
-テストフレームワークは未導入。
+### テスト
+
+Vitest を使用。テストファイルは対象コードと同階層に `*.test.ts` として配置。
+
+```
+src/
+├── lib/
+│   ├── utils/phase.test.ts          # フェーズ管理ロジック (12テスト)
+│   └── openrouter/
+│       ├── client.test.ts           # OpenRouter API クライアント (8テスト)
+│       └── prompts.test.ts          # formatAnswerText (16テスト)
+├── app/api/
+│   ├── sessions/sessions.test.ts    # セッション作成スキーマ (14テスト)
+│   ├── answers/answers.test.ts      # 回答保存スキーマ (12テスト)
+│   ├── questions/json-parser.test.ts # LLMレスポンスJSON解析 (11テスト)
+│   ├── analysis/analysis.test.ts    # 分析スキーマ+未回答チェック (13テスト)
+│   └── report/report.test.ts        # レポートスキーマ+バージョン管理 (9テスト)
+```
+
+テスト方針: Supabase/外部APIに依存しない純粋ロジック（Zodスキーマ検証、ビジネスロジック関数）を抽出してテスト。`fetch` は `vi.stubGlobal` でモック。
+
+### CI
+
+GitHub Actions (`.github/workflows/ci.yml`) で `main`/`develop` への push と PR 時に test → lint → build を実行。
 
 ## Environment Variables
 
