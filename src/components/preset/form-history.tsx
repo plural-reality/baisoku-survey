@@ -26,6 +26,7 @@ export function FormHistory() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage初期化 + イベントリスナー登録
     loadPresets();
 
     const handleUpdate = () => loadPresets();

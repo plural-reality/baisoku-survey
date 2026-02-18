@@ -117,14 +117,17 @@ export function QuestionFlow({
   }, [questions, getAnswerLabel]);
 
   const renderWithCitations = useCallback((node: React.ReactNode): React.ReactNode => {
-    if (typeof node === "string") return renderTextWithCitations(node);
-    if (Array.isArray(node)) return node.map((child) => renderWithCitations(child));
-    if (React.isValidElement<{ children?: React.ReactNode }>(node)) {
-      if (node.type === "code" || node.type === "pre") return node;
-      if (!node.props?.children) return node;
-      return React.cloneElement(node, node.props, renderWithCitations(node.props.children));
-    }
-    return node;
+    const walk = (n: React.ReactNode): React.ReactNode => {
+      if (typeof n === "string") return renderTextWithCitations(n);
+      if (Array.isArray(n)) return n.map((child) => walk(child));
+      if (React.isValidElement<{ children?: React.ReactNode }>(n)) {
+        if (n.type === "code" || n.type === "pre") return n;
+        if (!n.props?.children) return n;
+        return React.cloneElement(n, n.props, walk(n.props.children));
+      }
+      return n;
+    };
+    return walk(node);
   }, [renderTextWithCitations]);
 
   // Calculate current progress — account for all question types

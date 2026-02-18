@@ -32,6 +32,7 @@ export function VotematchSession({ sessionId }: VotematchSessionProps) {
   useEffect(() => {
     const key = `votematch_started_${sessionId}`;
     if (localStorage.getItem(key) === "true") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage読み取りによる初期化のみ
       setShowWelcome(false);
     }
   }, [sessionId]);

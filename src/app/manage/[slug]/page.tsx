@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ManageTabs } from "@/components/manage/manage-tabs";
 
@@ -43,9 +44,9 @@ export default async function ManagePage({ params }: ManagePageProps) {
           <p className="text-gray-600 text-sm mb-4">
             このアンケートの管理者ではないか、アンケートが存在しません。
           </p>
-          <a href="/" className="text-sm text-blue-600 hover:text-blue-700">
+          <Link href="/" className="text-sm text-blue-600 hover:text-blue-700">
             トップに戻る
-          </a>
+          </Link>
         </div>
       </main>
     );
