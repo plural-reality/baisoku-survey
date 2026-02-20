@@ -1,0 +1,150 @@
+services:
+  # =================================================================
+  # PostgreSQL — Supabase 拡張入りの PostgreSQL
+  # =================================================================
+  db:
+    image: supabase/postgres:${POSTGRES_VERSION:-15.8.1.20}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: postgres
+      JWT_SECRET: ${JWT_SECRET}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./volumes/db/init-migrations.sh:/docker-entrypoint-initdb.d/99-app-migrations.sh:ro
+      - ../../supabase/migrations:/app-migrations:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U supabase_admin -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # =================================================================
+  # Kong — API Gateway（認証キー検証 & ルーティング）
+  # =================================================================
+  kong:
+    image: kong:${KONG_VERSION:-2.8.1}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000/tcp"
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
+      KONG_DNS_ORDER: LAST,A,CNAME
+      KONG_PLUGINS: request-transformer,cors,key-auth,acl
+      KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
+      KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
+    volumes:
+      - ./volumes/api/kong.yml:/var/lib/kong/kong.yml:ro
+    depends_on:
+      auth:
+        condition: service_started
+      rest:
+        condition: service_started
+
+  # =================================================================
+  # GoTrue — 認証サーバー（マジックリンク等）
+  # =================================================================
+  auth:
+    image: supabase/gotrue:${GOTRUE_VERSION:-v2.164.0}
+    restart: unless-stopped
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: ${API_EXTERNAL_URL}
+
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+
+      GOTRUE_SITE_URL: ${SITE_URL}
+      GOTRUE_URI_ALLOW_LIST: ${ADDITIONAL_REDIRECT_URLS:-}
+      GOTRUE_DISABLE_SIGNUP: "false"
+
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: ${JWT_EXPIRY:-3600}
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+
+      # メール送信 (SMTP)
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_MAILER_AUTOCONFIRM: "false"
+      GOTRUE_SMTP_HOST: ${SMTP_HOST:-}
+      GOTRUE_SMTP_PORT: ${SMTP_PORT:-587}
+      GOTRUE_SMTP_USER: ${SMTP_USER:-}
+      GOTRUE_SMTP_PASS: ${SMTP_PASS:-}
+      GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL:-noreply@example.com}
+      GOTRUE_SMTP_SENDER_NAME: ${SMTP_SENDER_NAME:-Sonar}
+      GOTRUE_MAILER_URLPATHS_CONFIRMATION: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_INVITE: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_RECOVERY: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: /auth/v1/verify
+
+      GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # =================================================================
+  # PostgREST — DB を自動で REST API 化
+  # =================================================================
+  rest:
+    image: postgrest/postgrest:${POSTGREST_VERSION:-v12.2.3}
+    restart: unless-stopped
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@db:5432/postgres
+      PGRST_DB_SCHEMAS: public,graphql_public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+      PGRST_APP_SETTINGS_JWT_SECRET: ${JWT_SECRET}
+      PGRST_APP_SETTINGS_JWT_EXP: ${JWT_EXPIRY:-3600}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # =================================================================
+  # postgres-meta — Studio 用メタデータ API
+  # =================================================================
+  meta:
+    image: supabase/postgres-meta:${META_VERSION:-v0.84.2}
+    restart: unless-stopped
+    environment:
+      PG_META_PORT: 8080
+      PG_META_DB_HOST: db
+      PG_META_DB_PORT: 5432
+      PG_META_DB_NAME: postgres
+      PG_META_DB_USER: supabase_admin
+      PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # =================================================================
+  # Studio — DB 管理 UI（SSH トンネル経由でアクセス推奨）
+  # =================================================================
+  studio:
+    image: supabase/studio:${STUDIO_VERSION:-20241202-5765e4b}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3100:3000"
+    environment:
+      STUDIO_PG_META_URL: http://meta:8080
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      DEFAULT_ORGANIZATION_NAME: Sonar
+      DEFAULT_PROJECT_NAME: sonar
+      SUPABASE_URL: http://kong:8000
+      SUPABASE_PUBLIC_URL: ${API_EXTERNAL_URL}
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      NEXT_ANALYTICS_BACKEND_PROVIDER: postgres
+    depends_on:
+      kong:
+        condition: service_started
+      meta:
+        condition: service_started
+
+volumes:
+  db-data:

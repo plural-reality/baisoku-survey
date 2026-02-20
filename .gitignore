@@ -40,3 +40,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# terraform
+deploy/terraform/.terraform/
+deploy/terraform/*.tfstate*
+deploy/terraform/terraform.tfvars
+
+# supabase self-host (generated secrets)
+deploy/supabase/.env
+deploy/supabase/volumes/api/kong.yml
