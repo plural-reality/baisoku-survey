@@ -1,0 +1,21 @@
+# ===== 必須: 以下を自分の環境に合わせて変更 =====
+
+# SSH Key Pair 名（AWS コンソールで作成済みのもの）
+key_name = "my-keypair"
+
+# NixOS AMI ID（DEPLOYMENT.md の手順で取得）
+nixos_ami = "ami-xxxxxxxxxxxxxxxxx"
+
+# ===== 任意: 必要に応じて変更 =====
+
+# AWS リージョン
+# aws_region = "ap-northeast-1"
+
+# インスタンスタイプ（最低 t3.medium 推奨）
+# instance_type = "t3.medium"
+
+# EBS ボリュームサイズ (GB)
+# volume_size = 30
+
+# SSH 接続を許可する IP（セキュリティのため自分の IP に限定推奨）
+# ssh_cidr = "203.0.113.0/32"
