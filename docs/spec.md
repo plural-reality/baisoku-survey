@@ -1,305 +1,343 @@
-# 設計書・実装計画書: Sonar
+# 設計書: 倍速アンケート
 
 ## 1. 概要
-ユーザーが「明確にしたいこと／言語化したいこと／スタンスを整理したいこと」を入力し、段階的な質問（5問ずつ）に答えることで、最終的に詳細な診断レポートを生成するシステム。Next.js + Supabase + OpenRouter (gemini-3-flash) を採用する。
+
+Google Formsのような固定質問に対する回答をもとに、AIがリアルタイムに深掘り質問を自動生成し、最終的に構造化されたレポートを自動生成するアンケートプラットフォーム。
+
+管理者が「目的」「固定質問」「探索テーマ」を設定してアンケートを作成し、回答用URLを配布する。回答者は固定質問に答えた後、AIが回答傾向に応じて追加の深掘り質問を生成。目標問数に達するとAIが自動でレポートを生成する。管理者は全回答者のレポートを集約して閲覧できる。
+
+Tech stack: Next.js 16 (App Router) + Supabase + OpenRouter API (google/gemini-3-flash-preview) + Tailwind CSS v4
 
 ## 2. 目的とゴール
-- 目的: ユーザーの内省を支援し、思考の構造化とスタンスの明確化を促進する。
-- ゴール: 100問で最終レポートを生成。
 
-## 3. 機能要件
-### 3.1 入力
-- 目的 (短文)
-- 背景情報 (長文)
-- 参考資料アップロード (PDFはフロントエンドでテキスト化し、背景情報に追記)
-- PDFテキストは「文字をペーストする」のと同等の扱いとする
+- **目的**: 従来のアンケートでは得られない「深い意見」をAIの対話的深掘りで引き出し、意思決定に直結するレポートを自動生成する。
+- **ゴール**: 管理者が設定した目標問数（デフォルト10問、5問刻みで5〜95問まで設定可能）に達した時点で最終レポートを生成する。目標到達後も追加質問を続けることが可能。
 
-### 3.2 質問フロー
-- 5問ずつ生成 → 5問回答 → 分析生成と次の5問生成を並列実行
-- 100問で最終レポート生成
-- 途中で中断可能、任意タイミングで再開可能
-- 100問後も追加質問を選べる
+## 3. 利用モード
 
-### 3.3 回答形式
-- 1問につき3択
-- 3択は「YES/分からない/NO」ではなく、微妙な立場を表現する選択肢をAIが生成
-- 選択肢は文章で明示 (例: 「嫌いではないが最近距離を取りたい」)
+| モード | 対象 | 入口 | 概要 |
+|--------|------|------|------|
+| プリセットモード | 組織向けアンケート配布 | `/create` → `/preset/[slug]` | 管理者が設計、回答者に配布 |
+| ソロモード | 個人の思考整理 | `/solo` | 個人がAIと壁打ち |
 
-### 3.4 分析とレポート
-- 5問回答ごとに500文字程度の分析
-- 最終レポートは詳細で、共感的かつ洞察的
-- 最終レポート内で質問番号を引用表記 (例: [56])
-- 印刷用ページに遷移可能
+## 4. 機能要件
 
-### 3.5 セッション管理
-- セッションIDをCookie or LocalStorageに保存
+### 4.1 アンケート作成（管理者）
+
+管理者がアンケートを設計する。3つのセクションで構成：
+
+#### セクション1: 回答者に表示される情報
+- **タイトル**（必須）: アンケートの表題
+- **説明文**（任意）: 回答者に表示される背景・前提情報。AIによる自動生成も可能
+- **PDF添付**: PDFをアップロードするとフロントエンドでテキスト抽出し、説明文に追記。PDFの生ファイルはサーバーに保存しない
+
+#### セクション2: 固定質問
+- 全回答者に共通で出題する質問を定義
+- 質問タイプ: ラジオボタン / チェックボックス / プルダウン / 短文テキスト / 段落テキスト / 均等目盛
+- ラジオ/チェックボックス/プルダウン: 選択肢を2〜10個設定
+- 均等目盛: min/max値 + 左右ラベル
+
+#### セクション3: AI深掘り設定（回答者には非表示）
+- **深掘りの目的**（必須）: AIが質問を生成する際の指針
+- **探索テーマ**（任意）: AIが重点的に深掘りするテーマのリスト。AIによる自動生成・ドラッグ並べ替え可能
+
+#### 詳細設定
+- **レポートのカスタマイズ**: レポート生成時のAIへの追加指示
+- **質問数**: 5問刻みで設定（5〜95問、デフォルト10問）
+
+### 4.2 質問フロー（回答者）
+
+#### 回答の流れ
+1. 回答者がプリセットURL (`/preset/[slug]`) にアクセスすると、自動的にセッションが作成され質問画面へリダイレクト
+2. 固定質問がある場合、まず固定質問に回答（セクション区切り表示）
+3. 固定質問完了後（または固定質問がない場合）、AIが5問ずつ質問を自動生成
+4. 5問回答完了 → 分析生成と次の5問生成を並列実行
+5. 目標問数到達 → レポート生成可能（「回答を終えて結果を見る」ボタン表示）
+6. 目標到達後も「もっと深掘りする（さらに5問追加）」で追加質問を続行可能
+7. 目標到達前でも5問バッチ完了時に「回答を中断する」でレポート生成可能
+
+#### AI生成質問の回答形式（3+1構造）
+全質問は固定6選択肢 + 自由記述：
+- `options[0]` = 「はい」
+- `options[1]` = 「わからない」
+- `options[2]` = 「いいえ」
+- `options[3-5]` = AIが回答傾向から予測する中間的立場（条件付き賛成、部分的否定など）
+- `options[6]` = 「その他」（自由記述、UIで追加）
+
+**制約**: options[3-5]は元の問いの軸から外れてはいけない。前提を疑う立場はOKだが、論点をすり替える選択肢はNG。
+
+UI上は「はい / わからない / いいえ」の3ボタンを横並びで表示し、「どちらでもない」を展開すると中間的立場3つ + 自由記述が表示される。
+
+#### 固定質問の回答形式
+質問タイプに応じたUI：
+- ラジオボタン: 通常のリスト選択
+- チェックボックス: 複数選択 + 「確定する」ボタン
+- プルダウン: セレクトボックス
+- 短文テキスト / 段落テキスト: テキスト入力 + 「送信する」ボタン
+- 均等目盛: 数値ボタンの横並び（min〜max）
+
+### 4.3 分析
+
+- 5問回答ごとに500文字程度の中間分析を自動生成
+- 共感的で、矛盾や揺らぎも丁寧に扱う
+- 次の探索/深掘り方向を1-2文で示す
+
+### 4.4 レポート
+
+- 目標問数到達後にAIが詳細レポートを自動生成
+- レポート内で質問番号を引用表記（例: `[Q12]`）
+- 引用はインタラクティブなカードに変換（ホバーで質問内容とユーザーの回答を表示）
+- Markdownレンダリング
+- 印刷用専用ページ対応（`@media print`）
+- Web Share API / クリップボードコピー対応
+- Markdownテキストのコピー対応
+
+### 4.5 管理画面
+
+- アンケート所有者のみアクセス可能（ログイン + 所有権チェック）
+- 全回答者の回答一覧閲覧
+- 集約レポート（全回答者の傾向をまとめたレポート）の生成・閲覧
+- レガシー管理画面: トークンベースのURL直接アクセスも維持（`/admin/[token]`）
+
+### 4.6 認証
+
+- Supabase Auth マジックリンク認証（PKCE フロー）
+- 未ログインでもプリセット回答・ソロモードは利用可能
+- `/create`（アンケート作成）と `/manage/*`（管理画面）はログイン必須
+- ログイン済みユーザーが `/login` にアクセスすると `/lp` にリダイレクト
+
+### 4.7 音声入力モード
+
+- `?mode=voice` パラメータで有効化
+- フルスクリーン専用UI（VoiceQuestionFlow）
+- Deepgram STT（Speech-to-Text）連携
+
+### 4.8 セッション管理
+
+- セッションIDはLocalStorageに保存（最大20件）
 - 同一デバイスから再開可能
-- DB側にセッション/回答/分析/レポートを保存
-- 一覧から再開できるUI
-- レポート生成後も「追加質問を続ける」選択肢を保持
+- 回答修正可能（過去の回答は変更可。ただし後続質問の再生成はしない）
 
-## 4. 非機能要件
-- スマホファースト (縦1列フロー)
-- 表示パフォーマンス: 1画面内の質問は最大で直近20件程度
-- セキュリティ: APIキーはサーバー側のみ保持
-- PDFの生ファイルはサーバーに保存しない
+## 5. フェーズシステム
 
-## 5. UX/UI設計
-### 5.1 レイアウト
-- 1列フロー型 (Googleフォームに近い)
-- 5問ごとに「分析ブロック」が挿入される
-- 質問は上から積み上がる形式
+質問はフェーズに基づいて生成される。5問ごとにフェーズが変わる：
 
-### 5.1.1 画面構成 (想定ルート)
-- / : 目的/背景入力 + セッション一覧 (再開)
-- /session/:id : 質問フロー画面
-- /report/:id : レポート閲覧
-- /report/:id/print : 印刷用
+| バッチ | フェーズ | 内容 |
+|--------|---------|------|
+| Batch 1-2 (Q1-10) | exploration | テーマを広く網羅。まだ聞けていないテーマをカバー |
+| Batch 3+ | deep-dive → reframing → exploration | 3フェーズ繰り返し |
 
-### 5.2 操作性
-- 回答はタップ一発
-- 回答修正可能 (過去の回答は変更可。ただし後続質問の再生成はしない)
-- 次の質問生成時は「空ボックス（モック）」が表示され、生成感を演出
-- 5問回答後、分析ブロックは直近の回答群の直下に挿入
-- 進捗は「現在の質問番号/100」として常時表示
-
-### 5.3 レポート
-- セッション完了後に「レポート画面」へ遷移
-- 印刷用専用ページ (/report/:id/print)
-
-### 5.4 体験設計の指針
-- 雑な装飾は避け、情報構造に沿った余白・階層・タイポグラフィで品質を出す
-- フォームの進行状況が視覚的に分かるよう、進捗バーと「今いる区間」を明示
-- 「次の質問が生成中」であることを、空のカードや薄いプレースホルダーで示す
+- **exploration（探索）**: テーマの幅を広げ、カバレッジの欠落を埋める
+- **deep-dive（深掘り）**: 条件分岐の探索、「なぜ」の根拠や価値観の引き出し、矛盾の境界線の明確化
+- **reframing（視点変換）**: 主語・スコープ・時間軸・条件・立場を変えて再質問。事実認識 vs 理想像、原則 vs 程度、目的 vs 手段の分離
 
 ## 6. システム構成
+
 ### 6.1 フロントエンド
-- Next.js (App Router)
-- Tailwind CSS または CSS Modules (デザイン要件に合わせて調整)
-- 状態管理: React state + server actions (必要に応じて軽量ストア)
+- Next.js 16 (App Router)
+- Tailwind CSS v4
+- 状態管理: `use-session` カスタムhook
 
 ### 6.2 バックエンド
 - Next.js Route Handlers
-- OpenRouter APIで gemini-3-flash を利用
+- OpenRouter API (model: `google/gemini-3-flash-preview`)
+- リクエスト検証: Zod
 
 ### 6.3 データベース
-- Supabase Postgres
+- Supabase PostgreSQL
+- RLS有効（現在は全操作許可。アプリケーション層でsession_idベースのアクセス制御）
 
-### 6.4 アクセス方針
+### 6.4 認証
+- Supabase Auth（`@supabase/ssr` 0.8+ PKCE フロー）
+
+### 6.5 アクセス方針
 - クライアントはDBへ直接アクセスしない
-- 全てNext.js API経由で読み書きし、サーバー側で認可と検証を行う
-- session_id を基準にアクセスを制御
+- 全てNext.js API経由で読み書き、サーバー側で検証
+- session_id を基準にアクセス制御
 
-### 6.5 ファイル処理
-- PDFはフロントエンドでテキスト抽出し、背景情報に追記
-- サーバーにはPDF/抽出テキストの保存を行わない
-- 抽出されたテキストは background_text に統合して保存
+## 7. データモデル
 
-## 7. データモデル (案)
 ### sessions
-- id (uuid)
-- title (text)
-- purpose (text)
-- background_text (text)
-- phase_profile (jsonb)
-- created_at, updated_at
+| カラム | 型 | 説明 |
+|--------|-----|------|
+| id | UUID (PK) | |
+| title | TEXT | アンケートタイトル |
+| purpose | TEXT (NOT NULL) | 深掘りの目的 |
+| background_text | TEXT | 説明文・背景情報 |
+| phase_profile | JSONB | フェーズ割り当て定義 |
+| status | TEXT | `active` / `completed` / `paused` |
+| current_question_index | INTEGER | 現在の質問インデックス |
+| preset_id | UUID (FK → presets) | 紐づくプリセット |
+| report_target | INTEGER | 目標問数 |
+| report_instructions | TEXT | レポートカスタマイズ指示 |
+| key_questions | JSONB | 探索テーマリスト |
+| created_at / updated_at | TIMESTAMPTZ | |
+
+### presets
+| カラム | 型 | 説明 |
+|--------|-----|------|
+| id | UUID (PK) | |
+| slug | TEXT (UNIQUE) | URL用スラッグ |
+| admin_token | UUID (UNIQUE) | レガシー管理画面用トークン |
+| user_id | UUID (FK → auth.users) | 作成者 |
+| title | TEXT (NOT NULL) | アンケートタイトル |
+| purpose | TEXT (NOT NULL) | 深掘りの目的 |
+| background_text | TEXT | 説明文 |
+| report_instructions | TEXT | レポートカスタマイズ |
+| report_target | INTEGER | 目標問数 |
+| key_questions | JSONB | 探索テーマ |
+| fixed_questions | JSONB | 固定質問定義 |
+| exploration_themes | JSONB | 探索テーマ |
+| og_title / og_description / og_image | TEXT | OGP設定 |
+| notification_email | TEXT | 通知用メール |
+| created_at / updated_at | TIMESTAMPTZ | |
 
 ### questions
-- id (uuid)
-- session_id (uuid)
-- question_index (int)
-- statement (text)
-- detail (text)
-- options (jsonb)
-- phase (text)
-- created_at
+| カラム | 型 | 説明 |
+|--------|-----|------|
+| id | UUID (PK) | |
+| session_id | UUID (FK) | |
+| question_index | INTEGER | 1-indexed |
+| statement | TEXT (NOT NULL) | 質問文 |
+| detail | TEXT | 補足説明 |
+| options | JSONB (NOT NULL) | 選択肢配列 |
+| phase | TEXT | `exploration` / `deep-dive` / `reframing` |
+| source | TEXT | `fixed` / `ai` |
+| question_type | TEXT | `radio` / `checkbox` / `dropdown` / `text` / `textarea` / `scale` |
+| scale_config | JSONB | 均等目盛の設定 |
+| created_at | TIMESTAMPTZ | |
+| UNIQUE(session_id, question_index) | | |
 
 ### answers
-- id (uuid)
-- question_id (uuid)
-- session_id (uuid)
-- selected_option (text)
-- created_at
+| カラム | 型 | 説明 |
+|--------|-----|------|
+| id | UUID (PK) | |
+| question_id | UUID (FK) | |
+| session_id | UUID (FK) | |
+| selected_option | INTEGER (nullable) | 選択したオプションのインデックス |
+| free_text | TEXT | 自由記述テキスト |
+| selected_options | JSONB | チェックボックスの複数選択 |
+| answer_text | TEXT | テキスト入力の回答 |
+| created_at / updated_at | TIMESTAMPTZ | |
+| UNIQUE(session_id, question_id) | | |
 
 ### analyses
-- id (uuid)
-- session_id (uuid)
-- batch_index (int)
-- start_index (int)
-- end_index (int)
-- analysis_text (text)
-- created_at
+| カラム | 型 | 説明 |
+|--------|-----|------|
+| id | UUID (PK) | |
+| session_id | UUID (FK) | |
+| batch_index | INTEGER | 何番目の5問バッチか |
+| start_index / end_index | INTEGER | 対象質問範囲 |
+| analysis_text | TEXT (NOT NULL) | 分析テキスト |
+| created_at | TIMESTAMPTZ | |
+| UNIQUE(session_id, batch_index) | | |
 
 ### reports
-- id (uuid)
-- session_id (uuid)
-- version (int)
-- report_text (text)
-- created_at
+| カラム | 型 | 説明 |
+|--------|-----|------|
+| id | UUID (PK) | |
+| session_id | UUID (FK) | |
+| version | INTEGER | バージョン管理 |
+| report_text | TEXT (NOT NULL) | レポート本文（Markdown） |
+| created_at | TIMESTAMPTZ | |
+| UNIQUE(session_id, version) | | |
 
-### 7.1 インデックス/制約
-- questions: unique(session_id, question_index)
-- answers: unique(session_id, question_id)
-- analyses: unique(session_id, batch_index)
-- reports: unique(session_id, version)
+### survey_reports
+- プリセット横断の集約レポートを保存
 
-## 8. 質問生成ロジック
-### 8.1 フェーズ制御
-- 探索フェーズ: 幅広く問題領域をカバー
-- 深掘りフェーズ: 重要領域を掘り下げる
+## 8. API設計
 
-### 8.2 例: 100問のフェーズ割り当て
-- Q1-15: 探索
-- Q16-30: 深掘り
-- Q31-45: 探索
-- Q46-60: 深掘り
-- Q61-75: 探索
-- Q76-90: 深掘り
-- Q91-100: 探索
+全て `/src/app/api/` 配下。Zodでリクエスト検証。エラーメッセージは日本語。
 
-※ phase_profile をJSONで持ち、後からチューニング可能にする。
+### コア機能
+| メソッド | パス | 概要 |
+|----------|------|------|
+| POST | `/api/sessions` | セッション作成 |
+| GET | `/api/sessions/:id` | セッション全状態取得（質問・回答・分析・レポート） |
+| POST | `/api/questions/generate` | 質問バッチ生成（5問） |
+| POST | `/api/answers` | 回答保存（upsert） |
+| POST | `/api/analysis/generate` | バッチ分析生成 |
+| POST | `/api/report/generate` | 最終レポート生成 |
 
-### 8.3 生成タイミング
-- セッション開始時に最初の5問を生成
-- 5問すべて回答されたら、分析生成と次の5問生成を並列で開始
-- UIは分析ブロックを先に表示し、質問は到着次第表示
-- 100問完了でレポート生成 (以降は「追加質問」モード)
+### プリセット管理
+| メソッド | パス | 概要 |
+|----------|------|------|
+| POST | `/api/presets` | プリセット作成 |
+| GET/PUT | `/api/presets/[slug]` | プリセット取得・更新 |
+| POST | `/api/presets/generate-key-questions` | 探索テーマのAI生成 |
+| POST | `/api/presets/generate-background` | 説明文のAI生成 |
 
-### 8.4 追加質問モード
-- report.version を上げて再生成
-- 追加質問は同様に5問ずつ
+### 管理者
+| メソッド | パス | 概要 |
+|----------|------|------|
+| GET | `/api/admin/[token]` | プリセット情報取得 |
+| GET | `/api/admin/[token]/responses` | 全回答一覧取得 |
+| POST | `/api/admin/[token]/survey-report/generate` | 集約レポート生成 |
 
-### 8.5 コンテキスト制御
+### その他
+| メソッド | パス | 概要 |
+|----------|------|------|
+| GET | `/api/deepgram/key` | 音声入力用の一時APIキー取得 |
+
+## 9. 画面構成
+
+| パス | ページ | アクセス条件 |
+|------|--------|-------------|
+| `/lp` | ランディングページ | 公開 |
+| `/` | ダッシュボード（アンケート一覧） | ログイン必須 |
+| `/create` | アンケート作成 | ログイン必須 |
+| `/solo` | ソロモード（個人壁打ち） | 公開 |
+| `/login` | ログイン | 公開 |
+| `/preset/[slug]` | プリセット入口（自動セッション作成→リダイレクト） | 公開 |
+| `/session/[id]` | 質問回答フロー | 公開 |
+| `/report/[id]` | レポート閲覧 | 公開 |
+| `/report/[id]/print` | 印刷用レポート | 公開 |
+| `/manage/[slug]` | 管理画面（認証ベース） | ログイン + 所有者のみ |
+| `/admin/[token]` | レガシー管理画面（トークンベース） | トークン所持者 |
+| `/auth/confirm` | 認証コールバック | システム |
+| `/auth/signout` | サインアウト | POST |
+
+## 10. 質問生成ロジック
+
+### 10.1 コンテキスト制御
 - 目的/背景は常に全文を送る
 - 過去の質問/回答は全量を送る
+- 探索テーマがある場合は指針として含める
 
-## 9. プロンプト設計
-- 以下はイメージを共有するための仮であり、本実装ではよりプロンプトを精緻に設計する！
+### 10.2 生成タイミング
+1. セッション開始時: 固定質問を先行配置 → AI質問の最初の5問を生成
+2. 5問すべて回答されたら: 分析生成と次の5問生成を並列で開始
+3. 目標問数到達: レポート生成可能に
+4. 追加質問モード: 5問ずつ追加、レポートは新バージョンで再生成
 
-### 9.1 質問生成プロンプト (骨子)
-- 目的と背景情報を常に含める
-- 全体目的に対するカバレッジを意識するよう指示
-- 「今は探索フェーズ/深掘りフェーズ」であることを明示
-- 5問セットで生成
-- 1問あたり: statement 30-50文字 / detail 80-120文字 / 選択肢3つ
-- 回答選択肢はニュアンスの違いを出し、YES/NOに直結しない設計
-
-### 9.2 出力フォーマット
-```
+### 10.3 AI質問の出力フォーマット
+```json
 {
   "questions": [
     {
-      "statement": "...",
-      "detail": "...",
-      "options": ["...", "...", "..."]
+      "statement": "30-50文字の質問文",
+      "detail": "80-120文字の補足説明",
+      "options": ["はい", "わからない", "いいえ", "中間的立場1", "中間的立場2", "中間的立場3"]
     }
   ]
 }
 ```
 
-### 9.3 質問生成プロンプト (サンプル)
-```
-あなたは内省支援の質問設計者です。
-目的: {{purpose}}
-背景情報: {{background_text}}
-これまでの質問/回答: {{qa_full}}
-現在のフェーズ: {{phase}} (探索/深掘り)
-今生成する質問番号の範囲: {{start_index}}-{{end_index}}
+## 11. 非機能要件
 
-指針:
-- 常に全体目的を俯瞰し、カバレッジの欠落を埋める
-- 直近の回答に引っ張られすぎない
-- 探索フェーズは広い切り口、深掘りフェーズは具体性重視
-- statementは30-50文字、detailは80-120文字
-- 3つの選択肢は「YES/NO/不明」ではなく、スタンスの幅を表現
+- スマホファースト（縦1列フロー）
+- ライト/ダークモード対応（CSS変数ベース。LPのみライトモード強制）
+- `prefers-reduced-motion` 対応
+- APIキーはサーバー側のみ保持
+- PDFの生ファイルはサーバーに保存しない
+- OGP対応（プリセットごとのtitle/description/image）
+- 印刷レイアウト対応（`@media print`）
+- Web Share API対応
 
-出力は次のJSON形式のみ:
-{ \"questions\": [ {\"statement\": \"...\", \"detail\": \"...\", \"options\": [\"...\",\"...\",\"...\"] } ] }
-```
+## 12. ブランチ戦略
 
-### 9.4 分析プロンプト
-```
-目的: {{purpose}}
-背景情報: {{background_text}}
-対象質問: {{start_index}}-{{end_index}}
-質問と回答: {{qa_block}}
-
-指針:
-- 500文字程度
-- 共感的で、矛盾や揺らぎも丁寧に扱う
-- 次の探索/深掘り方向を1-2文で示す
-```
-
-### 9.5 最終レポートプロンプト
-```
-目的: {{purpose}}
-背景情報: {{background_text}}
-質問と回答の全文: {{qa_full}}
-全文の引用元質問番号を参照しながら書く
-
-構成:
-1) 概観 (現在のスタンスを短く言語化)
-2) 価値観/関心の軸 (引用付き)
-3) 迷い・葛藤 (引用付き)
-4) 一貫性のある選択肢 (具体的アクション)
-5) まとめ (励ましと次の一歩)
-
-引用形式: [56] のように質問番号を付ける
-```
-
-## 10. API設計 (案)
-- POST /api/sessions : セッション作成
-- POST /api/questions/generate : 次の5問生成
-- POST /api/answers : 回答保存
-- POST /api/analysis/generate : 5問分析生成
-- POST /api/report/generate : 最終レポート生成
-- GET /api/sessions/:id : セッション状態取得
-
-### 10.1 代表的なAPIペイロード (例)
-- POST /api/sessions
-  - request: { purpose, background_text }
-  - response: { session_id }
-- POST /api/questions/generate
-  - request: { session_id, start_index, end_index }
-  - response: { questions }
-
-## 11. 実装計画
-### Phase 1: 基盤構築
-- Next.js プロジェクト初期化
-- Supabase プロジェクト作成
-- DBスキーマ作成
-- ローカルでAPIキー管理
-
-### Phase 2: セッション作成フロー
-- 目的/背景入力UI
-- PDFアップロード + フロントエンドでテキスト抽出
-- セッションID保存
-
-### Phase 3: 質問生成・回答UI
-- 質問カードUI
-- 5問生成 API
-- 回答保存
-
-### Phase 4: 分析生成
-- 5問回答後に分析生成
-- 分析ブロック表示
-
-### Phase 5: 最終レポート
-- 100問完了時にレポート生成
-- レポート画面/印刷ページ
-
-### Phase 6: 継続・中断機能
-- セッション再開UI
-- 追加質問のオプション
-
-### Phase 7: 仕上げ
-- 印刷レイアウト調整
-- エラー時のUX改善
-- 診断レポートの品質調整
-- リトライ/タイムアウト設計 (OpenRouter)
-
-## 12. テスト計画
-- 質問生成APIの出力形式テスト
-- セッション再開のE2E
-- レポート生成の整合性チェック
-- PDFテキスト抽出 (フロントエンド) の再現性確認
+| ブランチ | 用途 |
+|----------|------|
+| `main` | 本番環境（Vercel 自動デプロイ）。直接push/merge禁止 |
+| `develop` | 開発ブランチ。pushでVercel Preview生成 |
+| `feat/*` | 機能ブランチ。PRでdevelopにマージ |
