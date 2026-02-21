@@ -68,8 +68,8 @@ function LPHeader() {
             ログイン
           </Link>
           <Link
-            href="/create"
-            className="inline-flex items-center px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-all hover:shadow-lg hover:shadow-blue-600/20"
+            href="/"
+            className="inline-flex items-center px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-black transition-all hover:shadow-lg hover:shadow-slate-900/20"
           >
             無料で始める
           </Link>
@@ -152,8 +152,8 @@ function HeroSection() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <Link
-                href="/create"
-                className="inline-flex items-center justify-center px-6 py-3.5 rounded-lg bg-blue-600 text-white font-semibold text-base hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/25"
+                href="/"
+                className="inline-flex items-center justify-center px-6 py-3.5 rounded-lg bg-slate-900 text-white font-semibold text-base hover:bg-black transition-colors shadow-lg shadow-slate-900/25"
               >
                 無料で始める
                 <svg className="ml-2 w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -368,7 +368,6 @@ function PainPointsSection() {
       desc: "バイアスのない設問設計は専門技術。聞きたいことはあるのに、どう聞けばいいかわからない。チーム内で何度もレビューして、結局ありきたりな質問に。",
       color: "text-red-500",
       bg: "bg-red-50 dark:bg-red-900/20",
-      accent: "border-red-200 dark:border-red-800/40",
     },
     {
       icon: (
@@ -380,7 +379,6 @@ function PainPointsSection() {
       desc: "選択式では表面的な回答しか得られず、自由記述は空欄か一言。さらに複数部署が似たアンケートを別々に実施し、回答者は疲弊するのに深い意見は集まらない。",
       color: "text-amber-500",
       bg: "bg-amber-50 dark:bg-amber-900/20",
-      accent: "border-amber-200 dark:border-amber-800/40",
     },
     {
       icon: (
@@ -392,7 +390,6 @@ function PainPointsSection() {
       desc: "せっかくアンケートを実施しても、出てくるのは円グラフと平均値だけ。「で、結局どうすればいい？」が見えないまま報告書だけが残る。",
       color: "text-blue-500",
       bg: "bg-blue-50 dark:bg-blue-900/20",
-      accent: "border-blue-200 dark:border-blue-800/40",
     },
   ];
 
@@ -400,7 +397,6 @@ function PainPointsSection() {
     <section className="py-24 md:py-32 bg-[var(--muted)] relative">
       <div className="max-w-6xl mx-auto px-4">
         <div className="text-center mb-16">
-          <p className="text-sm font-semibold text-red-500 tracking-widest uppercase mb-3">Problem</p>
           <h2 className="text-2xl md:text-3xl font-bold mb-4">アンケートを「とっただけ」にしていませんか？</h2>
           <p className="text-[var(--muted-foreground)] max-w-xl mx-auto">
             設問に悩み、浅い回答に苦しみ、結局レポートは意思決定に使えない。
@@ -412,7 +408,7 @@ function PainPointsSection() {
           {pains.map((p, i) => (
             <div
               key={i}
-              className={`bg-[var(--card)] rounded-2xl p-6 border ${p.accent}`}
+              className="bg-[var(--card)] rounded-2xl p-6 border-2 border-[var(--border)]"
             >
               <div className={`w-12 h-12 rounded-xl ${p.bg} ${p.color} flex items-center justify-center mb-4`}>
                 {p.icon}
@@ -433,7 +429,6 @@ function HowItWorksSection() {
     <section id="how-it-works" className="py-24 md:py-32 relative">
       <div className="max-w-6xl mx-auto px-4">
         <div className="text-center mb-16">
-          <p className="text-sm font-semibold text-blue-600 tracking-widest uppercase mb-3">How it works</p>
           <h2 className="text-2xl md:text-3xl font-bold mb-4">3ステップで完結</h2>
           <p className="text-[var(--muted-foreground)]">
             設問設計も分析もAIにおまかせ。あなたは目的を入力するだけ。
@@ -717,7 +712,6 @@ function UIShowcaseSection() {
     <section className="py-24 md:py-32 bg-[var(--muted)]">
       <div className="max-w-6xl mx-auto px-4">
         <div className="text-center mb-16">
-          <p className="text-sm font-semibold text-blue-600 tracking-widest uppercase mb-3">Product</p>
           <h2 className="text-2xl md:text-3xl font-bold mb-4">実際の画面イメージ</h2>
           <p className="text-[var(--muted-foreground)] max-w-xl mx-auto">
             管理者も回答者も迷わない、シンプルなUI。作成から分析まで一気通貫。
@@ -873,7 +867,6 @@ function FeaturesSection() {
       {/* Subtle background */}
       <div className="relative max-w-6xl mx-auto px-4">
         <div className="text-center mb-12">
-          <p className="text-sm font-semibold text-blue-600 tracking-widest uppercase mb-3">Features</p>
           <h2 className="text-2xl md:text-3xl font-bold mb-4">インタビューとアンケートのいいとこどり</h2>
           <p className="text-[var(--muted-foreground)] max-w-xl mx-auto">
             AIが設問設計・動的深掘り・分析の全てを自動化。今までにない調査体験を実現します。
@@ -940,7 +933,6 @@ function ComparisonSection() {
     <section id="comparison" className="py-24 md:py-32 bg-[var(--muted)]">
       <div className="max-w-6xl mx-auto px-4">
         <div className="text-center mb-16">
-          <p className="text-sm font-semibold text-blue-600 tracking-widest uppercase mb-3">Comparison</p>
           <h2 className="text-2xl md:text-3xl font-bold mb-4">従来手法との比較</h2>
           <p className="text-[var(--muted-foreground)]">
             インタビューの深さと、アンケートの効率性を両立。
@@ -1048,7 +1040,6 @@ function UseCasesSection() {
     <section id="usecases" className="py-24 md:py-32">
       <div className="max-w-6xl mx-auto px-4">
         <div className="text-center mb-16">
-          <p className="text-sm font-semibold text-blue-600 tracking-widest uppercase mb-3">Use Cases</p>
           <h2 className="text-2xl md:text-3xl font-bold mb-4">活用シーン</h2>
           <p className="text-[var(--muted-foreground)]">
             「アンケートをとっただけ」で終わらせない。意思決定に直結する使い方。
@@ -1084,12 +1075,14 @@ function UseCasesSection() {
 function PricingSection() {
   const plans = [
     {
-      name: "Free",
+      name: "フリー",
       price: "¥0",
       period: "",
       desc: "まずは試してみたい方に",
       highlight: false,
       cta: "無料で始める",
+      ctaHref: "/",
+      ctaExternal: false,
       features: [
         "月3件までアンケート作成",
         "各アンケート100回答まで",
@@ -1103,12 +1096,14 @@ function PricingSection() {
       ],
     },
     {
-      name: "Pro",
+      name: "プロ",
       price: "¥3,980",
       period: "/月",
       desc: "本格的なアンケート運用に",
       highlight: true,
-      cta: "14日間無料トライアル",
+      cta: "14日間無料お試し",
+      ctaHref: "/",
+      ctaExternal: false,
       features: [
         "無制限のアンケート作成",
         "月1,000回答まで",
@@ -1121,12 +1116,14 @@ function PricingSection() {
       limits: [],
     },
     {
-      name: "Business",
+      name: "ビジネス",
       price: "¥9,800",
       period: "/月",
       desc: "組織全体での活用に",
       highlight: false,
       cta: "お問い合わせ",
+      ctaHref: "https://calendar.app.google/dYxRJC3mcM6vMw3EA",
+      ctaExternal: true,
       features: [
         "月10,000回答まで",
         "チーム無制限",
@@ -1144,7 +1141,6 @@ function PricingSection() {
     <section id="pricing" className="py-24 md:py-32 bg-[var(--muted)]">
       <div className="max-w-6xl mx-auto px-4">
         <div className="text-center mb-16">
-          <p className="text-sm font-semibold text-blue-600 tracking-widest uppercase mb-3">Pricing</p>
           <h2 className="text-2xl md:text-3xl font-bold mb-4">料金プラン</h2>
           <p className="text-[var(--muted-foreground)] max-w-xl mx-auto">
             まずは無料で。本格運用はプロプランから。
@@ -1174,9 +1170,13 @@ function PricingSection() {
                 </div>
               </div>
               <Link
-                href="/create"
+                href={plan.ctaHref}
+                target={plan.ctaExternal ? "_blank" : undefined}
+                rel={plan.ctaExternal ? "noopener noreferrer" : undefined}
                 className={`w-full py-3 px-4 rounded-lg font-medium text-sm text-center transition-all mb-6 block ${
-                  plan.highlight
+                  plan.cta === "無料で始める"
+                    ? "bg-slate-900 text-white hover:bg-black"
+                    : plan.highlight
                     ? "bg-blue-600 text-white hover:bg-blue-700"
                     : "border-2 border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--muted)]"
                 }`}
@@ -1219,7 +1219,7 @@ function FAQSection() {
   const faqs = [
     {
       q: "無料で使えますか？",
-      a: "はい、Freeプランでは月3件・各100回答まで無料でお使いいただけます。AIによる質問生成と基本レポートも含まれます。本格運用にはProプラン（月額¥3,980）がおすすめです。",
+      a: "はい、フリープランでは月3件・各100回答まで無料でお使いいただけます。AIによる質問生成と基本レポートも含まれます。本格運用にはプロプラン（月額¥3,980）がおすすめです。",
     },
     {
       q: "回答者はアプリのインストールが必要ですか？",
@@ -1247,7 +1247,6 @@ function FAQSection() {
     <section id="faq" className="py-24 md:py-32">
       <div className="max-w-3xl mx-auto px-4">
         <div className="text-center mb-16">
-          <p className="text-sm font-semibold text-blue-600 tracking-widest uppercase mb-3">FAQ</p>
           <h2 className="text-2xl md:text-3xl font-bold mb-4">よくある質問</h2>
         </div>
         <div className="space-y-3">
@@ -1291,27 +1290,38 @@ function FinalCTA() {
     <section className="py-24 md:py-32 bg-gradient-to-br from-blue-600 to-blue-700 dark:from-blue-800 dark:to-blue-900 text-white">
       <div className="max-w-3xl mx-auto px-4 text-center">
         <h2 className="text-3xl md:text-4xl font-black mb-4">
-          アンケート業務を、
+          次のアンケート運用を、
           <br className="sm:hidden" />
-          今日から倍速に。
+          倍速で試しませんか？
         </h2>
         <p className="text-blue-100 text-lg mb-8 max-w-lg mx-auto">
-          設問設計も、集計労働も、レポート作成も不要。
-          <br />
-          「で、どうすればいい？」に答えるレポートまで自動生成。
+          まずは気になっている調査テーマを共有いただければ、
+          <br className="hidden sm:block" />
+          倍速アンケートでの進め方をご提案します。
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
-            href="/create"
-            className="inline-flex items-center justify-center px-8 py-4 rounded-lg bg-white text-blue-700 font-bold text-base hover:bg-blue-50 transition-colors shadow-lg"
+            href="/"
+            className="inline-flex items-center justify-center px-8 py-4 rounded-lg bg-slate-900 text-white font-bold text-base hover:bg-black transition-colors shadow-lg shadow-slate-900/25"
           >
-            無料でアンケートを作成
+            3分で無料体験
+            <svg className="ml-2 w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </Link>
+          <Link
+            href="https://calendar.app.google/dYxRJC3mcM6vMw3EA"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center px-8 py-4 rounded-lg border border-white bg-white text-slate-900 font-bold text-base hover:bg-slate-100 transition-colors shadow-lg"
+          >
+            デモを予約
             <svg className="ml-2 w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
             </svg>
           </Link>
         </div>
-        <p className="mt-4 text-sm text-blue-200">アカウント登録不要 ・ 3分で最初のアンケートが完成</p>
+        <p className="mt-4 text-sm text-blue-200">アカウント登録不要 ・ デモ予約は無料</p>
       </div>
     </section>
   );
